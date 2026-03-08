@@ -1,0 +1,12 @@
+{
+  "swift.languageServerPath": "${workspaceFolder}/Scripts/sourcekit-lsp.sh",
+  "files.associations": {
+    "*.h": "objective-cpp",
+    ".bazelrc": "bazel",
+    "*.bazelrc": "bazel",
+    "cstdint": "cpp",
+    "cstddef": "cpp",
+    "__node_handle": "cpp",
+    "bridging": "cpp"
+  }
+}

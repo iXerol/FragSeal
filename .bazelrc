@@ -1,0 +1,31 @@
+build --announce_rc
+build --show_progress_rate_limit=5
+build --verbose_failures
+build --profile=bazel-profile
+
+build:ci --nokeep_going
+build --keep_going
+
+common --enable_bzlmod
+
+build:macos --apple_platform_type=macos
+build:macos --xcode_version=26
+
+build:swift_linux --features=-swift.symbol_graphs
+build:swift_linux --features=-apple.swizzle_absolute_xcttestsourcelocation
+build:swift_linux --repo_env=CC=clang
+build:swift_linux --repo_env=CXX=clang++
+build:swift_linux --action_env=CC=clang
+build:swift_linux --action_env=CXX=clang++
+
+build:swift_linux_x86_64 --platforms=//Tools/Platforms:linux_x86_64
+build:swift_linux_x86_64 --extra_execution_platforms=//Tools/Platforms:linux_x86_64,@local_config_platform//:host
+build:swift_linux_x86_64 --extra_toolchains=@build_bazel_rules_swift_local_config//:linux-swift-toolchain-x86_64
+build:swift_linux_x86_64 --host_platform=//Tools/Platforms:linux_x86_64
+
+build:swift_linux_aarch64 --platforms=//Tools/Platforms:linux_aarch64
+build:swift_linux_aarch64 --extra_execution_platforms=//Tools/Platforms:linux_aarch64,@local_config_platform//:host
+build:swift_linux_aarch64 --extra_toolchains=@build_bazel_rules_swift_local_config//:linux-swift-toolchain-aarch64
+build:swift_linux_aarch64 --host_platform=//Tools/Platforms:linux_aarch64
+
+try-import %workspace%/.bazelrc.local

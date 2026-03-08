@@ -1,0 +1,131 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-assets:
+    name: Build release asset (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macos-universal
+            runner: macos-latest
+            setup_xcode: true
+            setup_swift: false
+            install_command: brew install openssl@3
+            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=native DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+            package_command: |
+              mkdir -p dist/fragseal-macos-universal
+              cp bazel-bin/FragSeal/universal_fragseal dist/fragseal-macos-universal/fragseal
+              chmod +x dist/fragseal-macos-universal/fragseal
+              tar -C dist -czf dist/fragseal-macos-universal.tar.gz fragseal-macos-universal
+            asset_path: dist/fragseal-macos-universal.tar.gz
+          - name: macos-backdeploy
+            runner: macos-latest
+            setup_xcode: true
+            setup_swift: false
+            install_command: brew install openssl@3
+            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+            package_command: |
+              mkdir -p dist/fragseal-macos-backdeploy/Frameworks
+              cp bazel-bin/FragSeal/fragseal_backdeploy dist/fragseal-macos-backdeploy/fragseal
+              cp bazel-bin/FragSeal/Frameworks/libswiftCompatibilitySpan.dylib dist/fragseal-macos-backdeploy/Frameworks/
+              chmod +x dist/fragseal-macos-backdeploy/fragseal
+              tar -C dist -czf dist/fragseal-macos-backdeploy.tar.gz fragseal-macos-backdeploy
+            asset_path: dist/fragseal-macos-backdeploy.tar.gz
+          - name: linux-x86_64
+            runner: ubuntu-latest
+            setup_xcode: false
+            setup_swift: true
+            install_command: |
+              sudo apt-get update
+              sudo apt-get install -y libssl-dev libxml2-dev pkg-config clang lldb lld
+            build_command: make build PRODUCT=cli PLATFORM=linux DECRYPTER=openssl BAZEL_ARGS="--config=ci"
+            package_command: |
+              mkdir -p dist/fragseal-linux-x86_64
+              cp bazel-bin/FragSeal/fragseal_cli_linux dist/fragseal-linux-x86_64/fragseal
+              chmod +x dist/fragseal-linux-x86_64/fragseal
+              tar -C dist -czf dist/fragseal-linux-x86_64.tar.gz fragseal-linux-x86_64
+            asset_path: dist/fragseal-linux-x86_64.tar.gz
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Select Xcode 26
+        if: ${{ matrix.setup_xcode }}
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install Swift
+        if: ${{ matrix.setup_swift }}
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.2"
+
+      - name: Show toolchain
+        run: |
+          if command -v xcodebuild >/dev/null 2>&1; then
+            xcodebuild -version
+          fi
+          if command -v clang >/dev/null 2>&1; then
+            clang --version
+          fi
+          swift --version
+
+      - name: Install Bazel
+        uses: bazel-contrib/setup-bazel@0.18.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-${{ runner.os }}
+          repository-cache: true
+
+      - name: Install system dependencies
+        run: ${{ matrix.install_command }}
+
+      - name: Build release binary
+        run: ${{ matrix.build_command }}
+
+      - name: Package release asset
+        run: ${{ matrix.package_command }}
+
+      - name: Upload release asset
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.asset_path }}
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-release:
+    name: Publish GitHub release
+    needs: build-assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@v8
+        with:
+          path: dist
+
+      - name: Build checksum manifest
+        run: |
+          find dist -type f -name '*.tar.gz' -print0 | sort -z | xargs -0 sha256sum > dist/SHA256SUMS.txt
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/**/*.tar.gz
+            dist/SHA256SUMS.txt

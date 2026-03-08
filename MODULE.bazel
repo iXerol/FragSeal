@@ -1,0 +1,95 @@
+# Build Tools
+
+bazel_dep(name = "rules_xcodeproj", version = "3.6.0")
+bazel_dep(name = "rules_apple", version = "4.5.0")
+bazel_dep(name = "rules_swift", version = "3.5.0")
+
+# Keep this override until upstream rules_swift forwards user compile flags to
+# symbol graph extraction on Linux.
+single_version_override(
+    module_name = "rules_swift",
+    patch_strip = 1,
+    patches = ["//third_party/rules_swift:symbolgraph_user_compile_flags.patch"],
+)
+
+bazel_dep(name = "apple_support", version = "2.3.0", repo_name = "build_bazel_apple_support")
+bazel_dep(name = "rules_cc", version = "0.2.17")
+bazel_dep(name = "gazelle", version = "0.47.0")
+bazel_dep(name = "rules_swift_package_manager", version = "1.13.0")
+
+# Referenced by platform/toolchain selections in this workspace.
+bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
+bazel_dep(name = "tomlplusplus", version = "3.4.0")
+
+# Required by rules_swift's extension graph (grpc/docc index-import repos).
+non_module_deps = use_extension(
+    "@rules_swift//swift:extensions.bzl",
+    "non_module_deps",
+)
+use_repo(
+    non_module_deps,
+    "build_bazel_rules_swift_index_import_5_8",
+    "build_bazel_rules_swift_index_import_6_1",
+    "build_bazel_rules_swift_local_config",
+    "com_github_apple_swift_docc_symbolkit",
+    "com_github_apple_swift_log",
+    "com_github_apple_swift_nio",
+    "com_github_apple_swift_nio_extras",
+    "com_github_apple_swift_nio_http2",
+    "com_github_apple_swift_nio_transport_services",
+    "com_github_apple_swift_protobuf",
+    "com_github_grpc_grpc_swift",
+)
+
+register_toolchains("@build_bazel_rules_swift_local_config//:all")
+
+register_execution_platforms(
+    "@local_config_platform//:host",
+    "//Tools/Platforms:linux_x86_64",
+)
+
+# swift_deps START
+swift_deps = use_extension(
+    "@rules_swift_package_manager//:extensions.bzl",
+    "swift_deps",
+)
+swift_deps.configure_package(
+    name = "smithy-swift",
+)
+swift_deps.from_package(
+    resolved = "//:Package.resolved",
+    swift = "//:Package.swift",
+)
+use_repo(
+    swift_deps,
+    "swift_package",
+    "swiftpkg_aws_sdk_swift",
+    "swiftpkg_smithy_swift",
+    "swiftpkg_swift_argument_parser",
+    "swiftpkg_swift_system",
+)
+# swift_deps END
+
+openssl_local_repository = use_repo_rule(
+    "//Tools/OpenSSL:openssl_local_repository.bzl",
+    "openssl_local_repository",
+)
+
+openssl_local_repository(name = "openssl_local")
+
+clang_builtin_include_repository = use_repo_rule(
+    "//Tools/Clang:clang_builtin_include_repository.bzl",
+    "clang_builtin_include_repository",
+)
+
+clang_builtin_include_repository(name = "clang_builtin_include")
+
+swift_toolchain_include_repository = use_repo_rule(
+    "//Tools/Swift:swift_toolchain_include_repository.bzl",
+    "swift_toolchain_include_repository",
+)
+
+swift_toolchain_include_repository(name = "swift_toolchain_include")
+
+## Swift Linux toolchain is discovered via rules_swift auto-configuration. See README for setup instructions.

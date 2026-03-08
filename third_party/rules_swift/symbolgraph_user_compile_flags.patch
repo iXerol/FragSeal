@@ -1,0 +1,148 @@
+diff --git a/swift/internal/symbol_graph_extracting.bzl b/swift/internal/symbol_graph_extracting.bzl
+--- a/swift/internal/symbol_graph_extracting.bzl
++++ b/swift/internal/symbol_graph_extracting.bzl
+@@ -23,4 +23,47 @@
++def _filter_symbol_graph_user_compile_flags(flags):
++    filtered_flags = []
++    for index in range(len(flags)):
++        flag = flags[index]
++        if flag == "-Xcc":
++            if index + 1 < len(flags):
++                xcc_flag = flags[index + 1]
++                if (
++                    xcc_flag.startswith("-I") or
++                    xcc_flag.startswith("-isystem") or
++                    xcc_flag.startswith("-iquote") or
++                    xcc_flag.startswith("-F") or
++                    xcc_flag.startswith("-ivfsoverlay") or
++                    xcc_flag.startswith("-fmodule-map-file=") or
++                    xcc_flag.startswith("-std=") or
++                    xcc_flag.startswith("-stdlib=") or
++                    xcc_flag == "-nostdinc++"
++                ):
++                    filtered_flags.extend([flag, xcc_flag])
++            continue
++        if index > 0 and flags[index - 1] == "-Xcc":
++            continue
++        if flag.startswith("-cxx-interoperability-mode="):
++            filtered_flags.append(flag)
++            continue
++        if flag.startswith("-Xcc="):
++            xcc_flag = flag[len("-Xcc="):]
++            if (
++                xcc_flag.startswith("-I") or
++                xcc_flag.startswith("-isystem") or
++                xcc_flag.startswith("-iquote") or
++                xcc_flag.startswith("-F") or
++                xcc_flag.startswith("-ivfsoverlay") or
++                xcc_flag.startswith("-fmodule-map-file=") or
++                xcc_flag.startswith("-std=") or
++                xcc_flag.startswith("-stdlib=") or
++                xcc_flag == "-nostdinc++"
++            ):
++                filtered_flags.append(flag)
++    return filtered_flags
++
+ def extract_symbol_graph(
+         *,
+         actions,
+         compilation_contexts,
+@@ -33,7 +33,8 @@ def extract_symbol_graph(
+         output_dir,
+         swift_infos,
+         swift_toolchain,
+-        toolchain_type = SWIFT_TOOLCHAIN_TYPE):
++        toolchain_type = SWIFT_TOOLCHAIN_TYPE,
++        user_compile_flags = None):
+     """Extracts the symbol graph from a Swift module.
+ 
+     Args:
+@@ -68,6 +69,9 @@ def extract_symbol_graph(
+         toolchain_type: The toolchain type of the `swift_toolchain` which is
+             used for the proper selection of the execution platform inside
+             `run_toolchain_action`.
++        user_compile_flags: Additional per-target Swift compile flags (for
++            example, values from a target's `copts`) that should be applied to
++            symbol graph extraction as well.
+     """
+     merged_compilation_context = merge_compilation_contexts(
+         transitive_compilation_contexts = compilation_contexts + [
+@@ -95,6 +99,12 @@ def extract_symbol_graph(
+             if module.name == module_name and swift_module.swiftdoc:
+                 direct_swiftdocs.append(swift_module.swiftdoc)
+ 
++    if user_compile_flags == None:
++        user_compile_flags = []
++    else:
++        user_compile_flags = _filter_symbol_graph_user_compile_flags(
++            user_compile_flags,
++        )
+     prerequisites = struct(
+         bin_dir = feature_configuration._bin_dir,
+         cc_compilation_context = merged_compilation_context,
+@@ -109,6 +116,7 @@ def extract_symbol_graph(
+         output_dir = output_dir,
+         target_label = feature_configuration._label,
+         transitive_modules = transitive_modules,
+         transitive_swiftmodules = transitive_swiftmodules,
++        user_compile_flags = user_compile_flags,
+     )
+ 
+     run_toolchain_action(
+diff --git a/swift/internal/BUILD b/swift/internal/BUILD
+--- a/swift/internal/BUILD
++++ b/swift/internal/BUILD
+@@ -8,7 +8,7 @@ alias(
+     name = "swizzle_absolute_xcttestsourcelocation",
+     actual = select({
+-        "@build_bazel_apple_support//constraints:apple": (
++        "@bazel_tools//src/conditions:darwin": (
+             "@build_bazel_apple_support//lib:swizzle_absolute_xcttestsourcelocation"
+         ),
+         "//conditions:default": ":dummy_swizzle_absolute_xcttestsourcelocation",
+     }),
+diff --git a/swift/internal/swift_symbol_graph_aspect.bzl b/swift/internal/swift_symbol_graph_aspect.bzl
+--- a/swift/internal/swift_symbol_graph_aspect.bzl
++++ b/swift/internal/swift_symbol_graph_aspect.bzl
+@@ -136,6 +136,7 @@ def _make_swift_symbol_graph_aspect_impl(
+                         output_dir = output_dir,
+                         swift_infos = [swift_info],
+                         swift_toolchain = swift_toolchain,
++                        user_compile_flags = getattr(aspect_ctx.rule.attr, "copts", []),
+                     )
+                     symbol_graphs.append(
+                         struct(
+diff --git a/swift/swift_test.bzl b/swift/swift_test.bzl
+--- a/swift/swift_test.bzl
++++ b/swift/swift_test.bzl
+@@ -399,6 +399,11 @@ def _swift_test_impl(ctx):
+                 module_name = module_name,
+                 output_dir = owner_symbol_graph_dir,
+                 swift_infos = swift_infos_including_owner,
++                user_compile_flags = expand_locations(
++                    ctx,
++                    ctx.attr.copts,
++                    ctx.attr.swiftc_inputs,
++                ),
+                 swift_toolchain = swift_toolchain,
+             )
+     else:
+diff --git a/swift/toolchains/config/compile_config.bzl b/swift/toolchains/config/compile_config.bzl
+--- a/swift/toolchains/config/compile_config.bzl
++++ b/swift/toolchains/config/compile_config.bzl
+@@ -1257,6 +1257,7 @@ def compile_action_configs(
+                 SWIFT_ACTION_COMPILE_MODULE_INTERFACE,
+                 SWIFT_ACTION_DERIVE_FILES,
+                 SWIFT_ACTION_DUMP_AST,
++                SWIFT_ACTION_SYMBOL_GRAPH_EXTRACT,
+             ],
+             configurators = [_user_compile_flags_configurator],
+         ),
+@@ -1290,6 +1291,7 @@ def compile_action_configs(
+                     SWIFT_ACTION_COMPILE_MODULE_INTERFACE,
+                     SWIFT_ACTION_DERIVE_FILES,
+                     SWIFT_ACTION_DUMP_AST,
++                    SWIFT_ACTION_SYMBOL_GRAPH_EXTRACT,
+                 ],
+                 configurators = [
+                     lambda _, args: args.add_all(

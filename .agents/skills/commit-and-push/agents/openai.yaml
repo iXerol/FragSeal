@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit & Push"
+  short_description: "Creates atomic commits and pushes safely"
+  default_prompt: "Use $commit-and-push to commit atomic changes, prefer staged-only when requested, and push to the current branch."

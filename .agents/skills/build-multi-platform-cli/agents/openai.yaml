@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build CLI (Multi-Platform)"
+  short_description: "Builds CLI on macOS/Linux and fixes errors"
+  default_prompt: "Use $build-multi-platform-cli to build the CLI for this OS, try both crypto backends, and fix compile errors."

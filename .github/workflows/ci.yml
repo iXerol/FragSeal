@@ -1,0 +1,204 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.event.merge_group.head_sha || github.ref }}
+  cancel-in-progress: true
+
+env:
+  BAZEL_CI_ARGS: --config=ci
+
+jobs:
+  macos-tests:
+    name: macOS tests (${{ matrix.runtime }}, ${{ matrix.decrypter }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            runtime: native
+            decrypter: commoncrypto
+          - runner: macos-latest
+            runtime: native
+            decrypter: openssl
+          - runner: macos-15
+            runtime: backdeploy
+            decrypter: commoncrypto
+          - runner: macos-15
+            runtime: backdeploy
+            decrypter: openssl
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Select Xcode 26
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swiftc --version
+
+      - name: Install Bazel
+        uses: bazel-contrib/setup-bazel@0.18.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-${{ runner.os }}
+          repository-cache: true
+
+      - name: Install OpenSSL
+        run: brew install openssl@3
+
+      - name: Run tests
+        run: |
+          OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+          make test \
+            RUNTIME=${{ matrix.runtime }} \
+            DECRYPTER=${{ matrix.decrypter }} \
+            OPENSSL_LIB="$OPENSSL_LIB" \
+            BAZEL_ARGS="${BAZEL_CI_ARGS} --config=macos"
+
+  macos-builds:
+    name: macOS build (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: framework
+            runner: macos-latest
+            make_args: PRODUCT=framework DECRYPTER=openssl
+          - name: cli-backdeploy
+            runner: macos-15
+            make_args: PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy DECRYPTER=openssl
+          - name: cli-native
+            runner: macos-latest
+            make_args: PRODUCT=cli PLATFORM=macos RUNTIME=native DECRYPTER=openssl
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Select Xcode 26
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swiftc --version
+
+      - name: Install Bazel
+        uses: bazel-contrib/setup-bazel@0.18.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-${{ runner.os }}
+          repository-cache: true
+
+      - name: Install OpenSSL
+        run: brew install openssl@3
+
+      - name: Build
+        run: |
+          OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+          make build \
+            ${{ matrix.make_args }} \
+            OPENSSL_LIB="$OPENSSL_LIB" \
+            BAZEL_ARGS="${BAZEL_CI_ARGS} --config=macos"
+
+  linux-tests:
+    name: Linux tests (openssl)
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev libxml2-dev pkg-config clang lldb lld
+
+      - name: Install Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.2"
+
+      - name: Show toolchain
+        run: |
+          clang --version
+          swift --version
+
+      - name: Install Bazel
+        uses: bazel-contrib/setup-bazel@0.18.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-${{ runner.os }}
+          repository-cache: true
+
+      - name: Run tests
+        run: |
+          unset CPLUS_INCLUDE_PATH
+          unset C_INCLUDE_PATH
+          unset CPATH
+          make test \
+            PLATFORM=linux \
+            DECRYPTER=openssl \
+            BAZEL_ARGS="${BAZEL_CI_ARGS}"
+
+  linux-builds:
+    name: Linux build (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: framework
+            make_args: PRODUCT=framework PLATFORM=linux DECRYPTER=openssl
+          - name: cli
+            make_args: PRODUCT=cli PLATFORM=linux DECRYPTER=openssl
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev libxml2-dev pkg-config clang lldb lld
+
+      - name: Install Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.2"
+
+      - name: Show toolchain
+        run: |
+          clang --version
+          swift --version
+
+      - name: Install Bazel
+        uses: bazel-contrib/setup-bazel@0.18.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-${{ runner.os }}
+          repository-cache: true
+
+      - name: Build
+        run: |
+          make build \
+            ${{ matrix.make_args }} \
+            BAZEL_ARGS="${BAZEL_CI_ARGS}"

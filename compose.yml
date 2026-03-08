@@ -1,0 +1,28 @@
+services:
+  swift-linux:
+    build:
+      context: .
+      dockerfile: Tools/Docker/swift-linux.Dockerfile
+      args:
+        SWIFT_IMAGE: swift:6.2
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - bazel-cache:/root/.cache/bazel
+      - bazel-repo-cache:/root/.cache/bazel-repo
+      - bazelisk-cache:/var/cache/bazelisk
+      - swiftpm-cache:/root/.swiftpm
+    tty: true
+    stdin_open: true
+    init: true
+    environment:
+      - CC=clang
+      - CXX=clang++
+      - BAZELISK_HOME=/var/cache/bazelisk
+    command: exec /bin/bash
+
+volumes:
+  bazel-cache:
+  bazel-repo-cache:
+  bazelisk-cache:
+  swiftpm-cache:
