@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -165,6 +166,23 @@ jobs:
       - name: Install system dependencies
         run: ${{ matrix.install_command }}
 
+      - name: Configure Bazel CC (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # Find the real system clang, bypassing Swiftly shims in PATH
+          CLANG=$(PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "^${SWIFTLY_BIN_DIR}$" | tr '\n' ':') which clang)
+          CLANGPP=$(PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "^${SWIFTLY_BIN_DIR}$" | tr '\n' ':') which clang++)
+          # Write as build:swift_linux to .bazelrc.local (try-import'd last in .bazelrc),
+          # so these config entries are expanded after the workspace .bazelrc ones and win.
+          cat > .bazelrc.local <<EOF
+          build:swift_linux --repo_env=CC=$CLANG
+          build:swift_linux --repo_env=CXX=$CLANGPP
+          build:swift_linux --action_env=CC=$CLANG
+          build:swift_linux --action_env=CXX=$CLANGPP
+          EOF
+          echo "Configured CC=$CLANG"
+          "$CLANG" --version
+
       - name: Build release binary
         run: ${{ matrix.build_command }}
 
@@ -182,6 +200,7 @@ jobs:
   publish-release:
     name: Publish GitHub release
     needs: build-assets
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
       - name: Download release assets
