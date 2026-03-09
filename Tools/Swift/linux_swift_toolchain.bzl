@@ -1,3 +1,5 @@
+load("@swift_toolchain_include//:paths.bzl", "SWIFT_TOOLCHAIN_INCLUDE_ROOT", "SWIFT_TOOLCHAIN_SWIFT_TO_CXX_PARENT")
+
 def _linux_libstdcpp_triple_swift_copts():
     return select({
         "@platforms//cpu:x86_64": [
@@ -25,7 +27,10 @@ def linux_swift_copts():
         "@platforms//os:linux": [
             "-module-alias", "System=SystemPackage",
             "-Xcc", "-stdlib=libstdc++",
-            "-Xcc", "-Iexternal/swift_toolchain_include",
+            "-Xcc", "-I{}".format(SWIFT_TOOLCHAIN_INCLUDE_ROOT),
+        ] + ([
+            "-Xcc", "-I{}".format(SWIFT_TOOLCHAIN_SWIFT_TO_CXX_PARENT),
+        ] if SWIFT_TOOLCHAIN_SWIFT_TO_CXX_PARENT else []) + [
             "-Xcc", "-Iexternal/libstdcpp/include/c++",
         ],
         "//conditions:default": [],
@@ -37,7 +42,10 @@ def linux_cc_includes():
 def linux_cc_copts():
     return select({
         "@platforms//os:linux": [
-            "-Iexternal/swift_toolchain_include",
+            "-I{}".format(SWIFT_TOOLCHAIN_INCLUDE_ROOT),
+        ] + ([
+            "-I{}".format(SWIFT_TOOLCHAIN_SWIFT_TO_CXX_PARENT),
+        ] if SWIFT_TOOLCHAIN_SWIFT_TO_CXX_PARENT else []) + [
             "-Iexternal/libstdcpp/include/c++",
         ],
         "//conditions:default": [],
