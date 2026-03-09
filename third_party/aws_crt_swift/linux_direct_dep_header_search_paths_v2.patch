@@ -1,0 +1,11 @@
+diff --git a/Package.swift b/Package.swift
+--- a/Package.swift
++++ b/Package.swift
+@@ -57,6 +57,7 @@
+ #endif
+ let cSettingsCommon: [CSetting] = [
+   .headerSearchPath("source/external/libcbor"),
++  .headerSearchPath("../config"),
+   .define("DEBUG_BUILD", .when(configuration: .debug)),
+ ]
+

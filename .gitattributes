@@ -1,0 +1,1 @@
+third_party/aws_crt_swift/*.patch -whitespace

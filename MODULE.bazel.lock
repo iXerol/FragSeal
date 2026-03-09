@@ -806,8 +806,8 @@
     },
     "@@rules_swift_package_manager+//:extensions.bzl%swift_deps": {
       "general": {
-        "bzlTransitiveDigest": "RGI634EPwcBOjzpFvVbW/K9UbE/G+rDCMcSnBZ+z6zA=",
-        "usagesDigest": "04M4GNOWvyKieG3bTdACnR5+tGCTkR3hJS/NEmuQ0xA=",
+        "bzlTransitiveDigest": "vac2WLXKtv6xFOmcVPAwBP30tj4v1nXkwxZjpr67nDk=",
+        "usagesDigest": "GsmwoJPxvcJQBEJLYHgfxQH2KRKvyQkW9HCU/92U10k=",
         "recordedFileInputs": {
           "@@//Package.resolved": "0be52c9e7d86fbe3ca08b632c91fa823a3fb7fb8ee1a1f1cab42abcbe1eb9780"
         },
@@ -949,12 +949,14 @@
               "init_submodules": false,
               "recursive_init_submodules": true,
               "patch_args": [
-                "-p0"
+                "-p1"
               ],
               "patch_cmds": [],
               "patch_cmds_win": [],
               "patch_tool": "",
-              "patches": [],
+              "patches": [
+                "@@//third_party/aws_crt_swift:linux_direct_dep_header_search_paths_v2.patch"
+              ],
               "publicly_expose_all_targets": false,
               "replace_scm_with_registry": false
             }

@@ -1,0 +1,3 @@
+exports_files([
+    "export_external_header_search_paths.patch",
+])

@@ -17,6 +17,12 @@ bazel_dep(name = "rules_cc", version = "0.2.17")
 bazel_dep(name = "gazelle", version = "0.47.0")
 bazel_dep(name = "rules_swift_package_manager", version = "1.13.0")
 
+single_version_override(
+    module_name = "rules_swift_package_manager",
+    patch_strip = 1,
+    patches = ["//third_party/rules_swift_package_manager:export_external_header_search_paths.patch"],
+)
+
 # Referenced by platform/toolchain selections in this workspace.
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "bazel_skylib", version = "1.9.0")
@@ -56,6 +62,11 @@ swift_deps = use_extension(
 )
 swift_deps.configure_package(
     name = "smithy-swift",
+)
+swift_deps.configure_package(
+    name = "aws-crt-swift",
+    patch_args = ["-p1"],
+    patches = ["//third_party/aws_crt_swift:linux_direct_dep_header_search_paths_v2.patch"],
 )
 swift_deps.from_package(
     resolved = "//:Package.resolved",
