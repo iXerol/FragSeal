@@ -26,7 +26,7 @@ candidates=(
 for candidate in "${candidates[@]}"; do
   [ -n "$candidate" ] || continue
   [ -f "$candidate/swift/bridging" ] || continue
-  printf '%%s' "$candidate"
+  printf '%s' "$candidate"
   exit 0
 done
 
@@ -81,6 +81,18 @@ exit 0
     swift_to_cxx_root = swift_to_cxx_result.stdout.strip()
     if swift_to_cxx_root:
         ctx.symlink(swift_to_cxx_root, "swiftToCxx")
+    swift_to_cxx_parent = ""
+    if swift_to_cxx_root:
+        swift_to_cxx_parent = swift_to_cxx_root.rsplit("/", 1)[0]
+    ctx.file(
+        "paths.bzl",
+        """SWIFT_TOOLCHAIN_INCLUDE_ROOT = "{include_root}"
+SWIFT_TOOLCHAIN_SWIFT_TO_CXX_PARENT = "{swift_to_cxx_parent}"
+""".format(
+            include_root = include_root.replace("\\", "\\\\").replace("\"", "\\\""),
+            swift_to_cxx_parent = swift_to_cxx_parent.replace("\\", "\\\\").replace("\"", "\\\""),
+        ),
+    )
     ctx.file(
         "BUILD.bazel",
         """

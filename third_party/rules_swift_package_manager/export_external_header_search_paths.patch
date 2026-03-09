@@ -1,0 +1,62 @@
+diff --git a/swiftpkg/internal/pkginfos.bzl b/swiftpkg/internal/pkginfos.bzl
+--- a/swiftpkg/internal/pkginfos.bzl
++++ b/swiftpkg/internal/pkginfos.bzl
+@@ -1363,10 +1363,39 @@ def _new_clang_src_info_from_sources(
+     organized_files = clang_files.collect_files(
+         repository_ctx,
+         all_srcs,
+         c99name,
+         public_includes = [
+             paths.normalize(paths.join(pkg_path, pi))
+             for pi in public_includes
+         ],
+         relative_to = pkg_path,
+     )
++
++    # Some packages occasionally resolve to an empty or header-less clang
++    # file set even though the target path contains C headers/sources.
++    # Re-scan conventional C target roots as a safety net to keep modulemap
++    # generation stable.  We trigger whenever public headers are missing
++    # because without them no modulemap can be generated.
++    if (len(organized_files.hdrs) == 0 and
++        len(organized_files.textual_hdrs) == 0):
++        fallback_src_roots = []
++        for rel_path in ["include", "source", "src", "Sources"]:
++            fallback_root = paths.normalize(paths.join(abs_target_path, rel_path))
++            if repository_files.is_directory(repository_ctx, fallback_root):
++                fallback_src_roots.append(fallback_root)
++        if len(fallback_src_roots) > 0:
++            fallback_all_srcs = []
++            for fallback_root in sets.to_list(sets.make(fallback_src_roots)):
++                fallback_all_srcs.extend(repository_files.list_files_under(
++                    repository_ctx,
++                    fallback_root,
++                    exclude_paths = abs_exclude_paths,
++                ))
++            if len(fallback_all_srcs) > 0:
++                organized_files = clang_files.collect_files(
++                    repository_ctx,
++                    fallback_all_srcs,
++                    c99name,
++                    public_includes = [paths.normalize(paths.join(pkg_path, pi)) for pi in public_includes],
++                    relative_to = pkg_path,
++                )
+@@ -1412,6 +1412,18 @@ def _new_clang_src_info_from_sources(
+     explicit_srcs = []
+     public_includes = organized_files.public_includes
+     private_includes = organized_files.private_includes
++    exported_hdr_srch_includes = []
++    for bs in other_hdr_srch_paths:
++        for path in bs.values:
++            normalized_path = paths.normalize(paths.join(target_path, path))
++            if clang_files.is_under_path(normalized_path, target_path):
++                continue
++            exported_hdr_srch_includes.append(normalized_path)
++    public_includes = sets.to_list(sets.union(
++        sets.make(public_includes),
++        sets.make(exported_hdr_srch_includes),
++    ))
++
+     if len(organized_files.srcs) > 0:
+         explicit_srcs.extend(organized_files.srcs)
+         srcs.extend(organized_files.srcs)

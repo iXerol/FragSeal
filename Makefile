@@ -36,6 +36,10 @@ export FRAGSEAL_OPENSSL_CRYPTO_LIB
 ifeq ($(shell uname -s),Linux)
 # Keep toolchain headers inside the execroot via sandbox mount pairs.
 LINUX_CXX_VERSION ?= $(shell g++ -dumpversion | cut -d. -f1)
+LINUX_BAZEL_CONFIG ?= $(shell arch="$$(uname -m)"; \
+	if [ "$$arch" = "x86_64" ]; then echo "swift_linux_x86_64"; \
+	elif [ "$$arch" = "aarch64" ] || [ "$$arch" = "arm64" ]; then echo "swift_linux_aarch64"; \
+	else echo "swift_linux"; fi)
 LINUX_CXX_TRIPLE ?= $(shell arch="$$(uname -m)"; \
 	if [ "$$arch" = "x86_64" ]; then echo "x86_64-linux-gnu"; \
 	elif [ "$$arch" = "aarch64" ] || [ "$$arch" = "arm64" ]; then echo "aarch64-linux-gnu"; \
@@ -50,7 +54,7 @@ BAZEL_CXXOPTS += -I$(BRIDGING_INCLUDE_ROOT) \
 	-I$(LINUX_CXX_INCLUDE_ROOT_REL)/c++ \
 	-I$(LINUX_CXX_INCLUDE_ROOT_REL)/$(LINUX_CXX_TRIPLE)/c++ \
 	-I$(LINUX_LIBXML2_INCLUDE_ROOT_REL)
-BAZEL_BASE_FLAGS += --config=swift_linux
+BAZEL_BASE_FLAGS += --config=$(LINUX_BAZEL_CONFIG)
 BAZEL_BASE_FLAGS += \
 	--action_env=CPATH=$(LINUX_LIBXML2_INCLUDE_ABS) \
 	--action_env=C_INCLUDE_PATH=$(LINUX_LIBXML2_INCLUDE_ABS) \
