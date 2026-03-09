@@ -16,49 +16,119 @@ jobs:
   build-assets:
     name: Build release asset (${{ matrix.name }})
     runs-on: ${{ matrix.runner }}
+    env:
+      CC: clang
+      CXX: clang++
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: macos-universal
-            runner: macos-latest
+          # macOS 26 — native runtime, requires macOS 26+
+          - name: macOS 26 (arm64)
+            runner: macos-26
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
-            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=native DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=native ARCH=arm64 DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
             package_command: |
-              mkdir -p dist/fragseal-macos-universal
-              cp bazel-bin/FragSeal/universal_fragseal dist/fragseal-macos-universal/fragseal
-              chmod +x dist/fragseal-macos-universal/fragseal
-              tar -C dist -czf dist/fragseal-macos-universal.tar.gz fragseal-macos-universal
-            asset_path: dist/fragseal-macos-universal.tar.gz
-          - name: macos-backdeploy
-            runner: macos-latest
+              mkdir -p dist/fragseal-macos-26-arm64
+              cp bazel-bin/FragSeal/fragseal_arm64 dist/fragseal-macos-26-arm64/fragseal
+              chmod +x dist/fragseal-macos-26-arm64/fragseal
+              tar -C dist -czf dist/fragseal-macos-26-arm64.tar.gz fragseal-macos-26-arm64
+            asset_path: dist/fragseal-macos-26-arm64.tar.gz
+          - name: macOS 26 (x86_64)
+            runner: macos-26
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
-            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=native ARCH=x86_64 DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
             package_command: |
-              mkdir -p dist/fragseal-macos-backdeploy/Frameworks
-              cp bazel-bin/FragSeal/fragseal_backdeploy dist/fragseal-macos-backdeploy/fragseal
-              cp bazel-bin/FragSeal/Frameworks/libswiftCompatibilitySpan.dylib dist/fragseal-macos-backdeploy/Frameworks/
-              chmod +x dist/fragseal-macos-backdeploy/fragseal
-              tar -C dist -czf dist/fragseal-macos-backdeploy.tar.gz fragseal-macos-backdeploy
-            asset_path: dist/fragseal-macos-backdeploy.tar.gz
-          - name: linux-x86_64
+              mkdir -p dist/fragseal-macos-26-x86_64
+              cp bazel-bin/FragSeal/fragseal_x86_64 dist/fragseal-macos-26-x86_64/fragseal
+              chmod +x dist/fragseal-macos-26-x86_64/fragseal
+              tar -C dist -czf dist/fragseal-macos-26-x86_64.tar.gz fragseal-macos-26-x86_64
+            asset_path: dist/fragseal-macos-26-x86_64.tar.gz
+          - name: macOS 26 (Universal)
+            runner: macos-26
+            setup_xcode: true
+            setup_swift: false
+            install_command: brew install openssl@3
+            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=native DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+            package_command: |
+              mkdir -p dist/fragseal-macos-26-universal
+              cp bazel-bin/FragSeal/universal_fragseal dist/fragseal-macos-26-universal/fragseal
+              chmod +x dist/fragseal-macos-26-universal/fragseal
+              tar -C dist -czf dist/fragseal-macos-26-universal.tar.gz fragseal-macos-26-universal
+            asset_path: dist/fragseal-macos-26-universal.tar.gz
+          # macOS 14–15 — backdeploy runtime, bundles compatibility shim
+          - name: macOS 14–15 (arm64)
+            runner: macos-15
+            setup_xcode: true
+            setup_swift: false
+            install_command: brew install openssl@3
+            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy ARCH=arm64 DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+            package_command: |
+              mkdir -p dist/fragseal-macos-14-15-arm64/Frameworks
+              cp bazel-bin/FragSeal/arm64/fragseal_backdeploy dist/fragseal-macos-14-15-arm64/fragseal
+              cp bazel-bin/FragSeal/arm64/Frameworks/libswiftCompatibilitySpan.dylib dist/fragseal-macos-14-15-arm64/Frameworks/
+              chmod +x dist/fragseal-macos-14-15-arm64/fragseal
+              tar -C dist -czf dist/fragseal-macos-14-15-arm64.tar.gz fragseal-macos-14-15-arm64
+            asset_path: dist/fragseal-macos-14-15-arm64.tar.gz
+          - name: macOS 14–15 (x86_64)
+            runner: macos-15
+            setup_xcode: true
+            setup_swift: false
+            install_command: brew install openssl@3
+            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy ARCH=x86_64 DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+            package_command: |
+              mkdir -p dist/fragseal-macos-14-15-x86_64/Frameworks
+              cp bazel-bin/FragSeal/x86_64/fragseal_backdeploy dist/fragseal-macos-14-15-x86_64/fragseal
+              cp bazel-bin/FragSeal/x86_64/Frameworks/libswiftCompatibilitySpan.dylib dist/fragseal-macos-14-15-x86_64/Frameworks/
+              chmod +x dist/fragseal-macos-14-15-x86_64/fragseal
+              tar -C dist -czf dist/fragseal-macos-14-15-x86_64.tar.gz fragseal-macos-14-15-x86_64
+            asset_path: dist/fragseal-macos-14-15-x86_64.tar.gz
+          - name: macOS 14–15 (Universal)
+            runner: macos-15
+            setup_xcode: true
+            setup_swift: false
+            install_command: brew install openssl@3
+            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+            package_command: |
+              mkdir -p dist/fragseal-macos-14-15-universal/Frameworks
+              cp bazel-bin/FragSeal/fragseal_backdeploy dist/fragseal-macos-14-15-universal/fragseal
+              cp bazel-bin/FragSeal/Frameworks/libswiftCompatibilitySpan.dylib dist/fragseal-macos-14-15-universal/Frameworks/
+              chmod +x dist/fragseal-macos-14-15-universal/fragseal
+              tar -C dist -czf dist/fragseal-macos-14-15-universal.tar.gz fragseal-macos-14-15-universal
+            asset_path: dist/fragseal-macos-14-15-universal.tar.gz
+          # Ubuntu
+          - name: Ubuntu (x86_64)
             runner: ubuntu-latest
             setup_xcode: false
             setup_swift: true
             install_command: |
               sudo apt-get update
               sudo apt-get install -y libssl-dev libxml2-dev pkg-config clang lldb lld
-            build_command: make build PRODUCT=cli PLATFORM=linux DECRYPTER=openssl BAZEL_ARGS="--config=ci"
+            build_command: make build PRODUCT=cli PLATFORM=linux DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=release"
             package_command: |
               mkdir -p dist/fragseal-linux-x86_64
               cp bazel-bin/FragSeal/fragseal_cli_linux dist/fragseal-linux-x86_64/fragseal
               chmod +x dist/fragseal-linux-x86_64/fragseal
               tar -C dist -czf dist/fragseal-linux-x86_64.tar.gz fragseal-linux-x86_64
             asset_path: dist/fragseal-linux-x86_64.tar.gz
+          - name: Ubuntu (arm64)
+            runner: ubuntu-24.04-arm
+            setup_xcode: false
+            setup_swift: true
+            install_command: |
+              sudo apt-get update
+              sudo apt-get install -y libssl-dev libxml2-dev pkg-config clang lldb lld
+            build_command: make build PRODUCT=cli PLATFORM=linux DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=release"
+            package_command: |
+              mkdir -p dist/fragseal-linux-arm64
+              cp bazel-bin/FragSeal/fragseal_cli_linux dist/fragseal-linux-arm64/fragseal
+              chmod +x dist/fragseal-linux-arm64/fragseal
+              tar -C dist -czf dist/fragseal-linux-arm64.tar.gz fragseal-linux-arm64
+            asset_path: dist/fragseal-linux-arm64.tar.gz
     steps:
       - uses: actions/checkout@v6
 

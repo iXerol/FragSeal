@@ -6,6 +6,9 @@ build --profile=bazel-profile
 build:ci --nokeep_going
 build --keep_going
 
+build:release -c opt
+build:release --strip=always
+
 common --enable_bzlmod
 
 build:macos --apple_platform_type=macos
