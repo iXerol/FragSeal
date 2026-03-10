@@ -169,19 +169,43 @@ jobs:
       - name: Configure Bazel CC (Linux)
         if: runner.os == 'Linux'
         run: |
-          # Find the real system clang, bypassing Swiftly shims in PATH
-          CLANG=$(PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "^${SWIFTLY_BIN_DIR}$" | tr '\n' ':') which clang)
-          CLANGPP=$(PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "^${SWIFTLY_BIN_DIR}$" | tr '\n' ':') which clang++)
+          FILTERED_PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "^${SWIFTLY_BIN_DIR:-}$" | paste -sd: -)
+          if [ -z "$FILTERED_PATH" ]; then
+            FILTERED_PATH="$PATH"
+          fi
+
+          # Find the real system clang, bypassing Swiftly shims in PATH.
+          CLANG=$(PATH="$FILTERED_PATH" which clang)
+          CLANGPP=$(PATH="$FILTERED_PATH" which clang++)
+
+          # Prefer the concrete Swift toolchain bin over swiftly shim binaries.
+          SWIFT_TOOLCHAIN_BIN=""
+          if command -v swiftly >/dev/null 2>&1; then
+            SWIFT_TOOLCHAIN_ROOT="$(swiftly use --print-location 2>/dev/null | grep '^/' | tail -n 1)"
+            SWIFT_TOOLCHAIN_BIN="$SWIFT_TOOLCHAIN_ROOT/usr/bin"
+          fi
+          if [ -z "$SWIFT_TOOLCHAIN_BIN" ] || [ ! -x "$SWIFT_TOOLCHAIN_BIN/swiftc" ]; then
+            SWIFT_TOOLCHAIN_BIN="$(dirname "$(PATH="$FILTERED_PATH" which swiftc)")"
+          fi
+
+          echo "PATH=$SWIFT_TOOLCHAIN_BIN:$FILTERED_PATH" >> "$GITHUB_ENV"
+
           # Write as build:swift_linux to .bazelrc.local (try-import'd last in .bazelrc),
           # so these config entries are expanded after the workspace .bazelrc ones and win.
           cat > .bazelrc.local <<EOF
           build:swift_linux --repo_env=CC=$CLANG
           build:swift_linux --repo_env=CXX=$CLANGPP
+          build:swift_linux --repo_env=SWIFTLY_HOME_DIR=${SWIFTLY_HOME_DIR:-}
+          build:swift_linux --repo_env=SWIFTLY_BIN_DIR=${SWIFTLY_BIN_DIR:-}
           build:swift_linux --action_env=CC=$CLANG
           build:swift_linux --action_env=CXX=$CLANGPP
+          build:swift_linux --action_env=SWIFTLY_HOME_DIR=${SWIFTLY_HOME_DIR:-}
+          build:swift_linux --action_env=SWIFTLY_BIN_DIR=${SWIFTLY_BIN_DIR:-}
           EOF
           echo "Configured CC=$CLANG"
+          echo "Configured Swift toolchain bin=$SWIFT_TOOLCHAIN_BIN"
           "$CLANG" --version
+          "$SWIFT_TOOLCHAIN_BIN/swiftc" --version
 
       - name: Build release binary
         run: ${{ matrix.build_command }}

@@ -115,23 +115,27 @@ jobs:
             BAZEL_ARGS="${BAZEL_CI_ARGS} --config=macos"
 
   linux-tests:
-    name: Linux tests (openssl)
-    runs-on: ubuntu-latest
+    name: Linux tests (openssl, ${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
     env:
       CC: clang
       CXX: clang++
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: x86_64
+            runner: ubuntu-latest
+          - name: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libssl-dev libxml2-dev pkg-config clang lldb lld
-
       - name: Install Swift
-        uses: swift-actions/setup-swift@v2
+        uses: swift-actions/setup-swift@v3
         with:
           swift-version: "6.2"
+          skip-verify-signature: true
 
       - name: Show toolchain
         run: |
@@ -144,6 +148,49 @@ jobs:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}-${{ runner.os }}
           repository-cache: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev libxml2-dev pkg-config clang lldb lld
+
+      - name: Configure Bazel CC (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          FILTERED_PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "^${SWIFTLY_BIN_DIR:-}$" | paste -sd: -)
+          if [ -z "$FILTERED_PATH" ]; then
+            FILTERED_PATH="$PATH"
+          fi
+
+          CLANG=$(PATH="$FILTERED_PATH" which clang)
+          CLANGPP=$(PATH="$FILTERED_PATH" which clang++)
+
+          SWIFT_TOOLCHAIN_BIN=""
+          if command -v swiftly >/dev/null 2>&1; then
+            SWIFT_TOOLCHAIN_ROOT="$(swiftly use --print-location 2>/dev/null | grep '^/' | tail -n 1)"
+            SWIFT_TOOLCHAIN_BIN="$SWIFT_TOOLCHAIN_ROOT/usr/bin"
+          fi
+          if [ -z "$SWIFT_TOOLCHAIN_BIN" ] || [ ! -x "$SWIFT_TOOLCHAIN_BIN/swiftc" ]; then
+            SWIFT_TOOLCHAIN_BIN="$(dirname "$(PATH="$FILTERED_PATH" which swiftc)")"
+          fi
+
+          echo "PATH=$SWIFT_TOOLCHAIN_BIN:$FILTERED_PATH" >> "$GITHUB_ENV"
+
+          cat > .bazelrc.local <<EOF
+          build:swift_linux --repo_env=CC=$CLANG
+          build:swift_linux --repo_env=CXX=$CLANGPP
+          build:swift_linux --repo_env=SWIFTLY_HOME_DIR=${SWIFTLY_HOME_DIR:-}
+          build:swift_linux --repo_env=SWIFTLY_BIN_DIR=${SWIFTLY_BIN_DIR:-}
+          build:swift_linux --action_env=CC=$CLANG
+          build:swift_linux --action_env=CXX=$CLANGPP
+          build:swift_linux --action_env=SWIFTLY_HOME_DIR=${SWIFTLY_HOME_DIR:-}
+          build:swift_linux --action_env=SWIFTLY_BIN_DIR=${SWIFTLY_BIN_DIR:-}
+          EOF
+
+          echo "Configured CC=$CLANG"
+          echo "Configured Swift toolchain bin=$SWIFT_TOOLCHAIN_BIN"
+          "$CLANG" --version
+          "$SWIFT_TOOLCHAIN_BIN/swiftc" --version
 
       - name: Run tests
         run: |
@@ -156,8 +203,8 @@ jobs:
             BAZEL_ARGS="${BAZEL_CI_ARGS}"
 
   linux-builds:
-    name: Linux build (${{ matrix.name }})
-    runs-on: ubuntu-latest
+    name: Linux build (${{ matrix.name }}, ${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     env:
       CC: clang
       CXX: clang++
@@ -166,19 +213,21 @@ jobs:
       matrix:
         include:
           - name: cli
+            arch: x86_64
+            runner: ubuntu-latest
+            make_args: PRODUCT=cli PLATFORM=linux DECRYPTER=openssl
+          - name: cli
+            arch: arm64
+            runner: ubuntu-24.04-arm
             make_args: PRODUCT=cli PLATFORM=linux DECRYPTER=openssl
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libssl-dev libxml2-dev pkg-config clang lldb lld
-
       - name: Install Swift
-        uses: swift-actions/setup-swift@v2
+        uses: swift-actions/setup-swift@v3
         with:
           swift-version: "6.2"
+          skip-verify-signature: true
 
       - name: Show toolchain
         run: |
@@ -192,9 +241,51 @@ jobs:
           disk-cache: ${{ github.workflow }}-${{ runner.os }}
           repository-cache: true
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev libxml2-dev pkg-config clang lldb lld
+
+      - name: Configure Bazel CC (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          FILTERED_PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "^${SWIFTLY_BIN_DIR:-}$" | paste -sd: -)
+          if [ -z "$FILTERED_PATH" ]; then
+            FILTERED_PATH="$PATH"
+          fi
+
+          CLANG=$(PATH="$FILTERED_PATH" which clang)
+          CLANGPP=$(PATH="$FILTERED_PATH" which clang++)
+
+          SWIFT_TOOLCHAIN_BIN=""
+          if command -v swiftly >/dev/null 2>&1; then
+            SWIFT_TOOLCHAIN_ROOT="$(swiftly use --print-location 2>/dev/null | grep '^/' | tail -n 1)"
+            SWIFT_TOOLCHAIN_BIN="$SWIFT_TOOLCHAIN_ROOT/usr/bin"
+          fi
+          if [ -z "$SWIFT_TOOLCHAIN_BIN" ] || [ ! -x "$SWIFT_TOOLCHAIN_BIN/swiftc" ]; then
+            SWIFT_TOOLCHAIN_BIN="$(dirname "$(PATH="$FILTERED_PATH" which swiftc)")"
+          fi
+
+          echo "PATH=$SWIFT_TOOLCHAIN_BIN:$FILTERED_PATH" >> "$GITHUB_ENV"
+
+          cat > .bazelrc.local <<EOF
+          build:swift_linux --repo_env=CC=$CLANG
+          build:swift_linux --repo_env=CXX=$CLANGPP
+          build:swift_linux --repo_env=SWIFTLY_HOME_DIR=${SWIFTLY_HOME_DIR:-}
+          build:swift_linux --repo_env=SWIFTLY_BIN_DIR=${SWIFTLY_BIN_DIR:-}
+          build:swift_linux --action_env=CC=$CLANG
+          build:swift_linux --action_env=CXX=$CLANGPP
+          build:swift_linux --action_env=SWIFTLY_HOME_DIR=${SWIFTLY_HOME_DIR:-}
+          build:swift_linux --action_env=SWIFTLY_BIN_DIR=${SWIFTLY_BIN_DIR:-}
+          EOF
+
+          echo "Configured CC=$CLANG"
+          echo "Configured Swift toolchain bin=$SWIFT_TOOLCHAIN_BIN"
+          "$CLANG" --version
+          "$SWIFT_TOOLCHAIN_BIN/swiftc" --version
+
       - name: Build
         run: |
           make build \
             ${{ matrix.make_args }} \
             BAZEL_ARGS="${BAZEL_CI_ARGS}"
-
