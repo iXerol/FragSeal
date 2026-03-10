@@ -71,6 +71,10 @@ swift_deps.configure_package(
 swift_deps.from_package(
     resolved = "//:Package.resolved",
     swift = "//:Package.swift",
+    env_inherit = [
+        "PATH",
+        "HOME",
+    ],
 )
 use_repo(
     swift_deps,
