@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -140,9 +141,10 @@ jobs:
 
       - name: Install Swift
         if: ${{ matrix.setup_swift }}
-        uses: swift-actions/setup-swift@v2
+        uses: swift-actions/setup-swift@v3
         with:
           swift-version: "6.2"
+          skip-verify-signature: true
 
       - name: Show toolchain
         run: |
@@ -164,8 +166,58 @@ jobs:
       - name: Install system dependencies
         run: ${{ matrix.install_command }}
 
+      - name: Configure Bazel CC (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          FILTERED_PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "^${SWIFTLY_BIN_DIR:-}$" | paste -sd: -)
+          if [ -z "$FILTERED_PATH" ]; then
+            FILTERED_PATH="$PATH"
+          fi
+
+          # Find the real system clang, bypassing Swiftly shims in PATH.
+          CLANG=$(PATH="$FILTERED_PATH" which clang)
+          CLANGPP=$(PATH="$FILTERED_PATH" which clang++)
+
+          # Prefer the concrete Swift toolchain bin over swiftly shim binaries.
+          SWIFT_TOOLCHAIN_BIN=""
+          if command -v swiftly >/dev/null 2>&1; then
+            SWIFT_TOOLCHAIN_ROOT="$(swiftly use --print-location 2>/dev/null | grep '^/' | tail -n 1)"
+            SWIFT_TOOLCHAIN_BIN="$SWIFT_TOOLCHAIN_ROOT/usr/bin"
+          fi
+          if [ -z "$SWIFT_TOOLCHAIN_BIN" ] || [ ! -x "$SWIFT_TOOLCHAIN_BIN/swiftc" ]; then
+            SWIFT_TOOLCHAIN_BIN="$(dirname "$(PATH="$FILTERED_PATH" which swiftc)")"
+          fi
+          SWIFT_TOOLCHAIN_USR="$(cd "$SWIFT_TOOLCHAIN_BIN/.." && pwd)"
+          SWIFT_TOOLCHAIN_ROOT="$(cd "$SWIFT_TOOLCHAIN_USR/.." && pwd)"
+
+          echo "PATH=$SWIFT_TOOLCHAIN_BIN:$FILTERED_PATH" >> "$GITHUB_ENV"
+
+          # Write as build:swift_linux to .bazelrc.local (try-import'd last in .bazelrc),
+          # so these config entries are expanded after the workspace .bazelrc ones and win.
+          cat > .bazelrc.local <<EOF
+          build:swift_linux --repo_env=CC=$CLANG
+          build:swift_linux --repo_env=CXX=$CLANGPP
+          build:swift_linux --action_env=CC=$CLANG
+          build:swift_linux --action_env=CXX=$CLANGPP
+          build:swift_linux --repo_env=SWIFT_BIN=$SWIFT_TOOLCHAIN_BIN/swift
+          build:swift_linux --repo_env=SWIFTC_BIN=$SWIFT_TOOLCHAIN_BIN/swiftc
+          build:swift_linux --repo_env=SWIFT_TOOLCHAIN_USR=$SWIFT_TOOLCHAIN_USR
+          build:swift_linux --repo_env=SWIFT_TOOLCHAIN_ROOT=$SWIFT_TOOLCHAIN_ROOT
+          build:swift_linux --repo_env=PATH=$SWIFT_TOOLCHAIN_BIN:$FILTERED_PATH
+          build:swift_linux --repo_env=HOME=$HOME
+          EOF
+          echo "Configured CC=$CLANG"
+          echo "Configured Swift toolchain bin=$SWIFT_TOOLCHAIN_BIN"
+          echo "Configured Swift toolchain usr=$SWIFT_TOOLCHAIN_USR"
+          echo "Configured Swift toolchain root=$SWIFT_TOOLCHAIN_ROOT"
+          "$CLANG" --version
+          "$SWIFT_TOOLCHAIN_BIN/swiftc" --version
+
       - name: Build release binary
-        run: ${{ matrix.build_command }}
+        run: |
+          unset SWIFTLY_HOME_DIR
+          unset SWIFTLY_BIN_DIR
+          ${{ matrix.build_command }}
 
       - name: Package release asset
         run: ${{ matrix.package_command }}
@@ -181,6 +233,7 @@ jobs:
   publish-release:
     name: Publish GitHub release
     needs: build-assets
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
       - name: Download release assets

@@ -36,10 +36,7 @@ export FRAGSEAL_OPENSSL_CRYPTO_LIB
 ifeq ($(shell uname -s),Linux)
 # Keep toolchain headers inside the execroot via sandbox mount pairs.
 LINUX_CXX_VERSION ?= $(shell g++ -dumpversion | cut -d. -f1)
-LINUX_BAZEL_CONFIG ?= $(shell arch="$$(uname -m)"; \
-	if [ "$$arch" = "x86_64" ]; then echo "swift_linux_x86_64"; \
-	elif [ "$$arch" = "aarch64" ] || [ "$$arch" = "arm64" ]; then echo "swift_linux_aarch64"; \
-	else echo "swift_linux"; fi)
+LINUX_BAZEL_CONFIG ?= swift_linux
 LINUX_CXX_TRIPLE ?= $(shell arch="$$(uname -m)"; \
 	if [ "$$arch" = "x86_64" ]; then echo "x86_64-linux-gnu"; \
 	elif [ "$$arch" = "aarch64" ] || [ "$$arch" = "arm64" ]; then echo "aarch64-linux-gnu"; \
