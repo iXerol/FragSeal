@@ -5,6 +5,12 @@ def _swift_toolchain_include_repository_impl(ctx):
         """
 set -euo pipefail
 
+append_candidate() {
+  local value="$1"
+  [ -n "$value" ] || return 0
+  CANDIDATES+=("$value")
+}
+
 swift_bin="$(command -v swift || true)"
 if [ -z "$swift_bin" ]; then
   swift_bin="$(command -v swiftc || true)"
@@ -15,27 +21,69 @@ fi
 
 swift_bin_dir="$(cd "$(dirname "$swift_bin")" && pwd)"
 runtime_resource_path="$("$swift_bin" -print-target-info 2>/dev/null | sed -n 's/.*"runtimeResourcePath"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p' | head -n 1)"
+swiftly_root=""
+if command -v swiftly >/dev/null 2>&1; then
+  swiftly_root="$(swiftly use --print-location 2>/dev/null | grep '^/' | tail -n 1 || true)"
+fi
 
-candidates=(
-  "$(realpath "$swift_bin_dir/../include" 2>/dev/null || true)"
-  "$(realpath "$runtime_resource_path/../../include" 2>/dev/null || true)"
-  "$(realpath "$runtime_resource_path/../include" 2>/dev/null || true)"
-  "/usr/include"
-)
+CANDIDATES=()
+append_candidate "$(realpath "$swift_bin_dir/../include" 2>/dev/null || true)"
+append_candidate "$(realpath "$runtime_resource_path/../../include" 2>/dev/null || true)"
+append_candidate "$(realpath "$runtime_resource_path/../include" 2>/dev/null || true)"
+append_candidate "$(realpath "$swiftly_root/usr/include" 2>/dev/null || true)"
+append_candidate "/usr/include"
 
-for candidate in "${candidates[@]}"; do
+for search_root in "$swiftly_root" "$swift_bin_dir" "$runtime_resource_path"; do
+  [ -n "$search_root" ] || continue
+  [ -d "$search_root" ] || continue
+  while IFS= read -r bridge_path; do
+    include_root="$(dirname "$(dirname "$bridge_path")")"
+    append_candidate "$include_root"
+  done < <(find "$search_root" -maxdepth 6 -type f -path "*/swift/bridging" 2>/dev/null | sort -u)
+done
+
+SEEN="|"
+for candidate in "${CANDIDATES[@]}"; do
   [ -n "$candidate" ] || continue
-  [ -f "$candidate/swift/bridging" ] || continue
+  case "$SEEN" in
+    *"|$candidate|"*) continue ;;
+  esac
+  SEEN="$SEEN$candidate|"
+  [ -e "$candidate/swift/bridging" ] || continue
   printf '%s' "$candidate"
   exit 0
 done
+
+{
+  echo "swift_bin=$swift_bin"
+  echo "swift_bin_dir=$swift_bin_dir"
+  echo "runtime_resource_path=$runtime_resource_path"
+  echo "swiftly_root=$swiftly_root"
+  echo "candidate_count=${#CANDIDATES[@]}"
+  for candidate in "${CANDIDATES[@]}"; do
+    [ -n "$candidate" ] || continue
+    if [ -e "$candidate/swift/bridging" ]; then
+      echo "candidate=$candidate (has swift/bridging)"
+    else
+      echo "candidate=$candidate (missing swift/bridging)"
+    fi
+  done
+} >&2
 
 exit 2
 """,
     ])
 
     if include_result.return_code != 0:
-        fail("Failed to locate a Swift include root that provides swift/bridging")
+        fail("""Failed to locate a Swift include root that provides swift/bridging
+stdout:
+{stdout}
+stderr:
+{stderr}
+""".format(
+            stdout = include_result.stdout,
+            stderr = include_result.stderr,
+        ))
 
     include_root = include_result.stdout.strip()
     if not include_root:
