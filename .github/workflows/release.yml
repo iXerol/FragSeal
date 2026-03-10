@@ -195,12 +195,8 @@ jobs:
           cat > .bazelrc.local <<EOF
           build:swift_linux --repo_env=CC=$CLANG
           build:swift_linux --repo_env=CXX=$CLANGPP
-          build:swift_linux --repo_env=SWIFTLY_HOME_DIR=${SWIFTLY_HOME_DIR:-}
-          build:swift_linux --repo_env=SWIFTLY_BIN_DIR=${SWIFTLY_BIN_DIR:-}
           build:swift_linux --action_env=CC=$CLANG
           build:swift_linux --action_env=CXX=$CLANGPP
-          build:swift_linux --action_env=SWIFTLY_HOME_DIR=${SWIFTLY_HOME_DIR:-}
-          build:swift_linux --action_env=SWIFTLY_BIN_DIR=${SWIFTLY_BIN_DIR:-}
           EOF
           echo "Configured CC=$CLANG"
           echo "Configured Swift toolchain bin=$SWIFT_TOOLCHAIN_BIN"
@@ -208,7 +204,10 @@ jobs:
           "$SWIFT_TOOLCHAIN_BIN/swiftc" --version
 
       - name: Build release binary
-        run: ${{ matrix.build_command }}
+        run: |
+          unset SWIFTLY_HOME_DIR
+          unset SWIFTLY_BIN_DIR
+          ${{ matrix.build_command }}
 
       - name: Package release asset
         run: ${{ matrix.package_command }}
