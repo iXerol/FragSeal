@@ -187,6 +187,8 @@ jobs:
           if [ -z "$SWIFT_TOOLCHAIN_BIN" ] || [ ! -x "$SWIFT_TOOLCHAIN_BIN/swiftc" ]; then
             SWIFT_TOOLCHAIN_BIN="$(dirname "$(PATH="$FILTERED_PATH" which swiftc)")"
           fi
+          SWIFT_TOOLCHAIN_USR="$(cd "$SWIFT_TOOLCHAIN_BIN/.." && pwd)"
+          SWIFT_TOOLCHAIN_ROOT="$(cd "$SWIFT_TOOLCHAIN_USR/.." && pwd)"
 
           echo "PATH=$SWIFT_TOOLCHAIN_BIN:$FILTERED_PATH" >> "$GITHUB_ENV"
 
@@ -197,9 +199,15 @@ jobs:
           build:swift_linux --repo_env=CXX=$CLANGPP
           build:swift_linux --action_env=CC=$CLANG
           build:swift_linux --action_env=CXX=$CLANGPP
+          build:swift_linux --repo_env=SWIFT_BIN=$SWIFT_TOOLCHAIN_BIN/swift
+          build:swift_linux --repo_env=SWIFTC_BIN=$SWIFT_TOOLCHAIN_BIN/swiftc
+          build:swift_linux --repo_env=SWIFT_TOOLCHAIN_USR=$SWIFT_TOOLCHAIN_USR
+          build:swift_linux --repo_env=SWIFT_TOOLCHAIN_ROOT=$SWIFT_TOOLCHAIN_ROOT
           EOF
           echo "Configured CC=$CLANG"
           echo "Configured Swift toolchain bin=$SWIFT_TOOLCHAIN_BIN"
+          echo "Configured Swift toolchain usr=$SWIFT_TOOLCHAIN_USR"
+          echo "Configured Swift toolchain root=$SWIFT_TOOLCHAIN_ROOT"
           "$CLANG" --version
           "$SWIFT_TOOLCHAIN_BIN/swiftc" --version
 
