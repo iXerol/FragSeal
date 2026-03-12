@@ -204,7 +204,6 @@ jobs:
           build:swift_linux --repo_env=SWIFT_TOOLCHAIN_USR=$SWIFT_TOOLCHAIN_USR
           build:swift_linux --repo_env=SWIFT_TOOLCHAIN_ROOT=$SWIFT_TOOLCHAIN_ROOT
           build:swift_linux --repo_env=PATH=$SWIFT_TOOLCHAIN_BIN:$FILTERED_PATH
-          build:swift_linux --repo_env=HOME=$HOME
           EOF
           echo "Configured CC=$CLANG"
           echo "Configured Swift toolchain bin=$SWIFT_TOOLCHAIN_BIN"
