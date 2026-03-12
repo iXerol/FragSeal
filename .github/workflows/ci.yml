@@ -120,6 +120,7 @@ jobs:
     env:
       CC: clang
       CXX: clang++
+      LINUX_BAZEL_CONFIG: swift_linux_ci
     strategy:
       fail-fast: false
       matrix:
@@ -216,6 +217,7 @@ jobs:
     env:
       CC: clang
       CXX: clang++
+      LINUX_BAZEL_CONFIG: swift_linux_ci
     strategy:
       fail-fast: false
       matrix:
