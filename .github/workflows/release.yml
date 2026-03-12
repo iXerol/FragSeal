@@ -36,8 +36,8 @@ jobs:
               mkdir -p dist/fragseal-macos-26-arm64
               cp bazel-bin/FragSeal/fragseal_arm64 dist/fragseal-macos-26-arm64/fragseal
               chmod +x dist/fragseal-macos-26-arm64/fragseal
-              tar -C dist -czf dist/fragseal-macos-26-arm64.tar.gz fragseal-macos-26-arm64
-            asset_path: dist/fragseal-macos-26-arm64.tar.gz
+              tar -C dist -czf dist/fragseal-${{ github.ref_name }}-macos-26-arm64.tar.gz fragseal-macos-26-arm64
+            asset_path: dist/fragseal-${{ github.ref_name }}-macos-26-arm64.tar.gz
           - name: macOS 26 (x86_64)
             runner: macos-latest
             setup_xcode: true
@@ -48,8 +48,8 @@ jobs:
               mkdir -p dist/fragseal-macos-26-x86_64
               cp bazel-bin/FragSeal/fragseal_x86_64 dist/fragseal-macos-26-x86_64/fragseal
               chmod +x dist/fragseal-macos-26-x86_64/fragseal
-              tar -C dist -czf dist/fragseal-macos-26-x86_64.tar.gz fragseal-macos-26-x86_64
-            asset_path: dist/fragseal-macos-26-x86_64.tar.gz
+              tar -C dist -czf dist/fragseal-${{ github.ref_name }}-macos-26-x86_64.tar.gz fragseal-macos-26-x86_64
+            asset_path: dist/fragseal-${{ github.ref_name }}-macos-26-x86_64.tar.gz
           - name: macOS 26 (Universal)
             runner: macos-latest
             setup_xcode: true
@@ -60,48 +60,48 @@ jobs:
               mkdir -p dist/fragseal-macos-26-universal
               cp bazel-bin/FragSeal/universal_fragseal dist/fragseal-macos-26-universal/fragseal
               chmod +x dist/fragseal-macos-26-universal/fragseal
-              tar -C dist -czf dist/fragseal-macos-26-universal.tar.gz fragseal-macos-26-universal
-            asset_path: dist/fragseal-macos-26-universal.tar.gz
-          # macOS 14-15 - backdeploy runtime, bundles compatibility shim
-          - name: macOS 14-15 (arm64)
+              tar -C dist -czf dist/fragseal-${{ github.ref_name }}-macos-26-universal.tar.gz fragseal-macos-26-universal
+            asset_path: dist/fragseal-${{ github.ref_name }}-macos-26-universal.tar.gz
+          # macOS 14+ - backdeploy runtime, bundles compatibility shim
+          - name: macOS 14 (arm64)
             runner: macos-latest
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
             build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy ARCH=arm64 DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
             package_command: |
-              mkdir -p dist/fragseal-macos-14-15-arm64/Frameworks
-              cp bazel-bin/FragSeal/arm64/fragseal_backdeploy dist/fragseal-macos-14-15-arm64/fragseal
-              cp bazel-bin/FragSeal/arm64/Frameworks/libswiftCompatibilitySpan.dylib dist/fragseal-macos-14-15-arm64/Frameworks/
-              chmod +x dist/fragseal-macos-14-15-arm64/fragseal
-              tar -C dist -czf dist/fragseal-macos-14-15-arm64.tar.gz fragseal-macos-14-15-arm64
-            asset_path: dist/fragseal-macos-14-15-arm64.tar.gz
-          - name: macOS 14-15 (x86_64)
+              mkdir -p dist/fragseal-macos-14-arm64/Frameworks
+              cp bazel-bin/FragSeal/arm64/fragseal_backdeploy dist/fragseal-macos-14-arm64/fragseal
+              cp bazel-bin/FragSeal/arm64/Frameworks/libswiftCompatibilitySpan.dylib dist/fragseal-macos-14-arm64/Frameworks/
+              chmod +x dist/fragseal-macos-14-arm64/fragseal
+              tar -C dist -czf dist/fragseal-${{ github.ref_name }}-macos-14-arm64.tar.gz fragseal-macos-14-arm64
+            asset_path: dist/fragseal-${{ github.ref_name }}-macos-14-arm64.tar.gz
+          - name: macOS 14 (x86_64)
             runner: macos-latest
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
             build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy ARCH=x86_64 DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
             package_command: |
-              mkdir -p dist/fragseal-macos-14-15-x86_64/Frameworks
-              cp bazel-bin/FragSeal/x86_64/fragseal_backdeploy dist/fragseal-macos-14-15-x86_64/fragseal
-              cp bazel-bin/FragSeal/x86_64/Frameworks/libswiftCompatibilitySpan.dylib dist/fragseal-macos-14-15-x86_64/Frameworks/
-              chmod +x dist/fragseal-macos-14-15-x86_64/fragseal
-              tar -C dist -czf dist/fragseal-macos-14-15-x86_64.tar.gz fragseal-macos-14-15-x86_64
-            asset_path: dist/fragseal-macos-14-15-x86_64.tar.gz
-          - name: macOS 14-15 (Universal)
+              mkdir -p dist/fragseal-macos-14-x86_64/Frameworks
+              cp bazel-bin/FragSeal/x86_64/fragseal_backdeploy dist/fragseal-macos-14-x86_64/fragseal
+              cp bazel-bin/FragSeal/x86_64/Frameworks/libswiftCompatibilitySpan.dylib dist/fragseal-macos-14-x86_64/Frameworks/
+              chmod +x dist/fragseal-macos-14-x86_64/fragseal
+              tar -C dist -czf dist/fragseal-${{ github.ref_name }}-macos-14-x86_64.tar.gz fragseal-macos-14-x86_64
+            asset_path: dist/fragseal-${{ github.ref_name }}-macos-14-x86_64.tar.gz
+          - name: macOS 14 (Universal)
             runner: macos-latest
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
             build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
             package_command: |
-              mkdir -p dist/fragseal-macos-14-15-universal/Frameworks
-              cp bazel-bin/FragSeal/fragseal_backdeploy dist/fragseal-macos-14-15-universal/fragseal
-              cp bazel-bin/FragSeal/Frameworks/libswiftCompatibilitySpan.dylib dist/fragseal-macos-14-15-universal/Frameworks/
-              chmod +x dist/fragseal-macos-14-15-universal/fragseal
-              tar -C dist -czf dist/fragseal-macos-14-15-universal.tar.gz fragseal-macos-14-15-universal
-            asset_path: dist/fragseal-macos-14-15-universal.tar.gz
+              mkdir -p dist/fragseal-macos-14-universal/Frameworks
+              cp bazel-bin/FragSeal/fragseal_backdeploy dist/fragseal-macos-14-universal/fragseal
+              cp bazel-bin/FragSeal/Frameworks/libswiftCompatibilitySpan.dylib dist/fragseal-macos-14-universal/Frameworks/
+              chmod +x dist/fragseal-macos-14-universal/fragseal
+              tar -C dist -czf dist/fragseal-${{ github.ref_name }}-macos-14-universal.tar.gz fragseal-macos-14-universal
+            asset_path: dist/fragseal-${{ github.ref_name }}-macos-14-universal.tar.gz
           # Ubuntu
           - name: Ubuntu (x86_64)
             runner: ubuntu-latest
@@ -115,8 +115,8 @@ jobs:
               mkdir -p dist/fragseal-linux-x86_64
               cp bazel-bin/FragSeal/fragseal_cli_linux dist/fragseal-linux-x86_64/fragseal
               chmod +x dist/fragseal-linux-x86_64/fragseal
-              tar -C dist -czf dist/fragseal-linux-x86_64.tar.gz fragseal-linux-x86_64
-            asset_path: dist/fragseal-linux-x86_64.tar.gz
+              tar -C dist -czf dist/fragseal-${{ github.ref_name }}-linux-x86_64.tar.gz fragseal-linux-x86_64
+            asset_path: dist/fragseal-${{ github.ref_name }}-linux-x86_64.tar.gz
           - name: Ubuntu (arm64)
             runner: ubuntu-24.04-arm
             setup_xcode: false
@@ -129,8 +129,8 @@ jobs:
               mkdir -p dist/fragseal-linux-arm64
               cp bazel-bin/FragSeal/fragseal_cli_linux dist/fragseal-linux-arm64/fragseal
               chmod +x dist/fragseal-linux-arm64/fragseal
-              tar -C dist -czf dist/fragseal-linux-arm64.tar.gz fragseal-linux-arm64
-            asset_path: dist/fragseal-linux-arm64.tar.gz
+              tar -C dist -czf dist/fragseal-${{ github.ref_name }}-linux-arm64.tar.gz fragseal-linux-arm64
+            asset_path: dist/fragseal-${{ github.ref_name }}-linux-arm64.tar.gz
     steps:
       - uses: actions/checkout@v6
 
