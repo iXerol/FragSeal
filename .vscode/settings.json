@@ -1,4 +1,5 @@
 {
+  "bis.pre_launch_task_name": "bazel: build fragseal",
   "swift.languageServerPath": "${workspaceFolder}/Scripts/sourcekit-lsp.sh",
   "files.associations": {
     "*.h": "objective-cpp",

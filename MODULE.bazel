@@ -1,5 +1,13 @@
 # Build Tools
 
+bazel_dep(name = "bis", version = "0.5.2", dev_dependency = True)
+archive_override(
+    module_name = "bis",
+    urls = ["https://github.com/xinzhengzhang/bis/archive/refs/tags/0.5.2.tar.gz"],
+    strip_prefix = "bis-0.5.2",
+    integrity = "sha256-YZAt2FXvY/gF48maQocpWVBAhyAfqplbtN6TYbVZgq4=",
+)
+
 bazel_dep(name = "rules_xcodeproj", version = "3.6.0")
 bazel_dep(name = "rules_apple", version = "4.5.0")
 bazel_dep(name = "rules_swift", version = "3.5.0")
