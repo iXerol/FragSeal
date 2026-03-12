@@ -72,16 +72,14 @@ jobs:
 
   macos-builds:
     name: macOS build (${{ matrix.name }})
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: cli-backdeploy
-            runner: macos-15
             make_args: PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy DECRYPTER=openssl
           - name: cli-native
-            runner: macos-26
             make_args: PRODUCT=cli PLATFORM=macos RUNTIME=native DECRYPTER=openssl
     steps:
       - uses: actions/checkout@v6
@@ -120,6 +118,7 @@ jobs:
     env:
       CC: clang
       CXX: clang++
+      LINUX_BAZEL_CONFIG: swift_linux_ci
     strategy:
       fail-fast: false
       matrix:
@@ -216,6 +215,7 @@ jobs:
     env:
       CC: clang
       CXX: clang++
+      LINUX_BAZEL_CONFIG: swift_linux_ci
     strategy:
       fail-fast: false
       matrix:

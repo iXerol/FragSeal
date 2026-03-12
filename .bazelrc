@@ -16,13 +16,15 @@ build:macos --xcode_version=26
 
 build:swift_linux --features=-swift.symbol_graphs
 build:swift_linux --features=-apple.swizzle_absolute_xcttestsourcelocation
-build:swift_linux --features=-swift.use_module_wrap
-build:swift_linux --features=swift.no_embed_debug_module
 build:swift_linux --repo_env=CC=clang
 build:swift_linux --repo_env=CXX=clang++
-build:swift_linux --repo_env=BAZEL_COMPILER=clang
 build:swift_linux --action_env=CC=clang
 build:swift_linux --action_env=CXX=clang++
+
+build:swift_linux_ci --config=swift_linux
+build:swift_linux_ci --features=-swift.use_module_wrap
+build:swift_linux_ci --features=swift.no_embed_debug_module
+build:swift_linux_ci --repo_env=BAZEL_COMPILER=clang
 
 
 try-import %workspace%/.bazelrc.local
