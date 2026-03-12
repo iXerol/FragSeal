@@ -112,7 +112,7 @@ jobs:
             build_command: make build PRODUCT=cli PLATFORM=linux DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=release"
             package_command: |
               mkdir -p dist/fragseal-linux-x86_64
-              cp bazel-bin/FragSeal/fragseal_cli_linux dist/fragseal-linux-x86_64/fragseal
+              cp bazel-bin/FragSeal/fragseal dist/fragseal-linux-x86_64/fragseal
               chmod +x dist/fragseal-linux-x86_64/fragseal
               tar -C dist -czf dist/fragseal-linux-x86_64.tar.gz fragseal-linux-x86_64
             asset_path: dist/fragseal-linux-x86_64.tar.gz
@@ -126,7 +126,7 @@ jobs:
             build_command: make build PRODUCT=cli PLATFORM=linux DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=release"
             package_command: |
               mkdir -p dist/fragseal-linux-arm64
-              cp bazel-bin/FragSeal/fragseal_cli_linux dist/fragseal-linux-arm64/fragseal
+              cp bazel-bin/FragSeal/fragseal dist/fragseal-linux-arm64/fragseal
               chmod +x dist/fragseal-linux-arm64/fragseal
               tar -C dist -czf dist/fragseal-linux-arm64.tar.gz fragseal-linux-arm64
             asset_path: dist/fragseal-linux-arm64.tar.gz

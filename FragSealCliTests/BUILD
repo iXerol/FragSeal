@@ -3,9 +3,9 @@ sh_test(
     srcs = ["cli_artifact_functional_test.sh"],
     args = [
         "native",
-        "$(rootpath //FragSeal:fragseal_cli_linux)",
+        "$(rootpath //FragSeal:fragseal)",
     ],
-    data = ["//FragSeal:fragseal_cli_linux"],
+    data = ["//FragSeal:fragseal"],
     target_compatible_with = ["@platforms//os:linux"],
 )
 

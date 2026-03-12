@@ -46,12 +46,6 @@ swift_binary(
     }),
 )
 
-swift_binary(
-    name = "fragseal_cli_linux",
-    deps = [":FragSeal_library"],
-    visibility = ["//visibility:public"],
-    target_compatible_with = ["@platforms//os:linux"],
-)
 
 apple_universal_binary(
     name = "fragseal_arm64",
