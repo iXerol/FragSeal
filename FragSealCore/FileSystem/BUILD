@@ -26,6 +26,7 @@ mixed_clang_swift_module(
     hdrs = [
         "include/FileSystemInterop.hpp",
     ],
+    generate_submodules = True,
     copts = ["-std=c++20"],
     swift_copts = [
         "-Xcc", "-std=c++20",
