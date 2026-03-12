@@ -199,6 +199,60 @@ docker compose run --rm --entrypoint /bin/bash swift-linux -lc 'make test PLATFO
 If the repo is mounted as a linked Git worktree, copy it to a temp directory
 inside the container before running Bazel so the `.git` indirection stays valid.
 
+## VS Code setup (bis)
+
+This project uses [bis](https://github.com/buildbuddy-io/bis) as a dev
+dependency for VS Code / SourceKit-LSP integration.
+
+### Compile commands
+
+Generate (or refresh) `compile_commands.json` for Go-to-definition, hover
+docs, and the **Show Swift Interface for Clang Header** task:
+
+```sh
+bazel run //.bis:refresh_compile_commands
+```
+
+Re-run this whenever you add or change Bazel targets.
+
+### Debugger
+
+`launch.json` is not tracked because the binary path is architecture-specific.
+Create `.vscode/launch.json` with the path that matches your host:
+
+```json
+{
+    "configurations": [
+        {
+            "debuggerRoot": "${workspaceFolder}",
+            "name": "Launch",
+            "preLaunchTask": "${config:bis.pre_launch_task_name}",
+            "program": "${workspaceFolder}/bazel-out/<cpu>-fastbuild/bin/FragSeal/fragseal",
+            "request": "launch",
+            "sourcePath": "${workspaceFolder}",
+            "type": "lldb-dap"
+        },
+        {
+            "debuggerRoot": "${workspaceFolder}",
+            "name": "Attach",
+            "program": "${workspaceFolder}/bazel-out/<cpu>-fastbuild/bin/FragSeal/fragseal",
+            "request": "attach",
+            "sourcePath": "${workspaceFolder}",
+            "type": "lldb-dap"
+        }
+    ],
+    "version": "2.0.0"
+}
+```
+
+Replace `<cpu>` with your host CPU string. You can find it by running:
+
+```sh
+bazel build //FragSeal:fragseal && ls bazel-out/ | grep fastbuild
+```
+
+Common values: `darwin_arm64`, `darwin_x86_64`, `k8`.
+
 ## Backdeploy note
 
 On macOS earlier than 26, run the backdeploy bundle produced by:
