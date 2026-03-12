@@ -23,6 +23,50 @@ generated_text_file = rule(
     },
 )
 
+def _submodule_modulemap_impl(ctx):
+    # Header paths in a modulemap are resolved relative to the modulemap file's directory.
+    # The generated modulemap lives at: <bin_dir>/<package>/<output_name>
+    # Source headers live at: <execroot>/<package>/include/<Header.hpp>  (hdr.path)
+    # We need to compute `../` * depth to go from the modulemap dir back to execroot,
+    # then append the exec-root-relative header path.
+    pkg = ctx.label.package
+    modulemap_dir = ctx.bin_dir.path + ("/" + pkg if pkg else "")
+    depth = len(modulemap_dir.split("/"))
+    prefix = "../" * depth
+
+    sub_paths = {hdr.path: True for hdr in ctx.files.sub_hdrs}
+
+    lines = ["module {} {{".format(ctx.attr.module_name)]
+    # Top-level headers that are NOT also submodule headers go directly in the parent module.
+    for hdr in ctx.files.top_hdrs:
+        if hdr.path not in sub_paths:
+            lines.append("  header \"{}{}\"".format(prefix, hdr.path))
+    # Each submodule header becomes a named submodule.
+    for hdr in ctx.files.sub_hdrs:
+        stem = hdr.basename
+        dot_idx = stem.rfind(".")
+        if dot_idx >= 0:
+            stem = stem[:dot_idx]
+        lines.append("  module {} {{".format(stem))
+        lines.append("    header \"{}{}\"".format(prefix, hdr.path))
+        lines.append("    export *")
+        lines.append("  }")
+    lines.append("  export *")
+    lines.append("}")
+    output = ctx.actions.declare_file(ctx.attr.output_name)
+    ctx.actions.write(output = output, content = "\n".join(lines) + "\n")
+    return [DefaultInfo(files = depset([output]))]
+
+_submodule_modulemap = rule(
+    implementation = _submodule_modulemap_impl,
+    attrs = {
+        "top_hdrs": attr.label_list(allow_files = True),
+        "sub_hdrs": attr.label_list(allow_files = True),
+        "module_name": attr.string(mandatory = True),
+        "output_name": attr.string(mandatory = True),
+    },
+)
+
 def _sanitize_module_name(value):
     result = []
     for i in range(len(value)):
@@ -68,6 +112,7 @@ def mixed_clang_swift_module(
         hdrs,
         module_name = None,
         clang_module_name = None,
+        generate_submodules = False,
         generated_header_path = None,
         umbrella_header_path = None,
         copts = [],
@@ -154,11 +199,45 @@ def mixed_clang_swift_module(
     swift_name = name + "_swift"
     generated_header_name = name + "_swift_public_header"
     umbrella_header_name = name + "_umbrella_header"
+    modulemap_name = name + "_modulemap"
 
-    swift_interop_hint(
-        name = interop_hint_name,
-        module_name = clang_module_name,
-    )
+    if generate_submodules:
+        # Auto-derive sub-headers: all non-umbrella headers from srcs that share
+        # the same top-level directory as the umbrella headers (e.g. "include/").
+        hdrs_prefix = None
+        if public_headers:
+            first = str(public_headers[0])
+            slash = first.find("/")
+            if slash > 0:
+                hdrs_prefix = first[:slash]
+        auto_sub_hdrs = [
+            h
+            for h in private_headers
+            if hdrs_prefix == None or str(h).startswith(hdrs_prefix + "/")
+        ]
+        if auto_sub_hdrs:
+            _submodule_modulemap(
+                name = modulemap_name,
+                top_hdrs = public_headers,
+                sub_hdrs = auto_sub_hdrs,
+                module_name = clang_module_name,
+                output_name = clang_module_name + ".modulemap",
+            )
+            swift_interop_hint(
+                name = interop_hint_name,
+                module_name = clang_module_name,
+                module_map = ":" + modulemap_name,
+            )
+        else:
+            swift_interop_hint(
+                name = interop_hint_name,
+                module_name = clang_module_name,
+            )
+    else:
+        swift_interop_hint(
+            name = interop_hint_name,
+            module_name = clang_module_name,
+        )
 
     generated_text_file(
         name = exported_swift_name,
