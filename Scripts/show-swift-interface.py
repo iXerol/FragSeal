@@ -56,20 +56,26 @@ def find_containing_module(header_path: str, modulemap_paths: set[str], workspac
         mmap_dir = os.path.dirname(mmap_abs)
         module_name = None
         for line in content.splitlines():
-            line = line.strip()
-            if line.startswith("module ") and '"' in line:
-                module_name = line.split('"')[1]
+            stripped = line.strip()
+            if stripped.startswith("module ") and "{" in stripped:
+                # Module name may be quoted ("Name") or unquoted (Name)
+                name_part = stripped[len("module "):].split("{")[0].strip()
+                if name_part.startswith('"'):
+                    module_name = name_part.split('"')[1]
+                elif name_part:
+                    module_name = name_part
                 break
         if not module_name:
             continue
 
         for line in content.splitlines():
-            line = line.strip()
-            if not line.startswith("header ") or '"' not in line:
+            stripped = line.strip()
+            if not stripped.startswith("header ") or '"' not in stripped:
                 continue
-            parts = line.split('"')
+            parts = stripped.split('"')
             if len(parts) < 2:
                 continue
+            # Header paths are relative to the modulemap's directory
             candidate = os.path.normpath(os.path.join(mmap_dir, parts[1]))
             if candidate == header_abs:
                 return module_name, mmap_abs
@@ -77,6 +83,46 @@ def find_containing_module(header_path: str, modulemap_paths: set[str], workspac
                 fallback = (module_name, mmap_abs)
 
     return fallback if fallback else (None, None)
+
+
+def find_submodule_name(header_abs: str, modulemap_abs: str) -> str | None:
+    """Return the submodule name if the header appears as a named submodule in the modulemap."""
+    if not os.path.exists(modulemap_abs):
+        return None
+    with open(modulemap_abs) as f:
+        content = f.read()
+
+    mmap_dir = os.path.dirname(modulemap_abs)
+    current_submodule = None
+    depth = 0
+    for line in content.splitlines():
+        stripped = line.strip()
+        opens = stripped.count("{")
+        closes = stripped.count("}")
+        # Match both "explicit module X {" and "module X {" at sub-level (depth == 0 means top-level)
+        if depth == 0 and stripped.startswith("module ") and opens > 0:
+            # Top-level module — just track depth
+            depth += opens - closes
+        elif depth == 1 and stripped.startswith(("module ", "explicit module ")) and opens > 0:
+            parts = stripped.lstrip("explicit ").split()
+            if len(parts) >= 2:
+                current_submodule = parts[1].split("{")[0].strip()
+            depth += opens - closes
+        elif depth > 1:
+            depth += opens - closes
+            if stripped.startswith("header ") and '"' in stripped:
+                hdr_path = stripped.split('"')[1]
+                candidate = os.path.normpath(
+                    hdr_path if os.path.isabs(hdr_path) else os.path.join(mmap_dir, hdr_path)
+                )
+                if candidate == header_abs:
+                    return current_submodule
+            if depth <= 1:
+                current_submodule = None
+        else:
+            depth += opens - closes
+
+    return None
 
 
 def find_args_for_modulemap(modulemap_abs: str, compile_commands: list, workspace: str):
@@ -203,7 +249,20 @@ def main():
 
     header_abs = str(Path(os.path.join(workspace, header_path)).resolve())
 
-    # Try single-header mode first
+    # Try submodule mode: if the modulemap explicitly defines a submodule for this header,
+    # use Parent.SubModule naming (no temp modulemap needed, cross-references work correctly).
+    submodule_name = find_submodule_name(header_abs, modulemap_abs)
+    if submodule_name:
+        qualified_name = f"{module_name}.{submodule_name}"
+        print(f"// Swift interface for: {os.path.basename(header_path)} (submodule {qualified_name})", file=sys.stderr)
+        cmd = build_synthesize_command(qualified_name, compile_args)
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=workspace)
+        if result.returncode == 0 and result.stdout.strip():
+            print(result.stdout)
+            return
+        # Submodule synthesis failed — fall through to single-header mode
+
+    # Try single-header mode
     output = try_single_header(header_abs, module_name, compile_args, workspace)
     if output:
         print(f"// Swift interface for: {os.path.basename(header_path)}", file=sys.stderr)
