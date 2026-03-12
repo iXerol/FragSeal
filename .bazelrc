@@ -4,6 +4,7 @@ build --verbose_failures
 build --profile=bazel-profile
 
 build:ci --nokeep_going
+build:ci --lockfile_mode=error
 build --keep_going
 
 build:release -c opt
