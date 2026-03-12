@@ -14,6 +14,16 @@
                 "panel": "shared"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "Show Swift Interface for Clang Header",
+            "type": "shell",
+            "command": "python3 ${workspaceFolder}/Scripts/show-swift-interface.py ${file} | code -",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            },
+            "problemMatcher": []
         }
     ]
 }
