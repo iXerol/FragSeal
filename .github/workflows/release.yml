@@ -27,7 +27,7 @@ jobs:
         include:
           # macOS 26 — native runtime, requires macOS 26+
           - name: macOS 26 (arm64)
-            runner: macos-26
+            runner: macos-latest
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
@@ -39,7 +39,7 @@ jobs:
               tar -C dist -czf dist/fragseal-macos-26-arm64.tar.gz fragseal-macos-26-arm64
             asset_path: dist/fragseal-macos-26-arm64.tar.gz
           - name: macOS 26 (x86_64)
-            runner: macos-26
+            runner: macos-latest
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
@@ -51,7 +51,7 @@ jobs:
               tar -C dist -czf dist/fragseal-macos-26-x86_64.tar.gz fragseal-macos-26-x86_64
             asset_path: dist/fragseal-macos-26-x86_64.tar.gz
           - name: macOS 26 (Universal)
-            runner: macos-26
+            runner: macos-latest
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
@@ -64,7 +64,7 @@ jobs:
             asset_path: dist/fragseal-macos-26-universal.tar.gz
           # macOS 14-15 - backdeploy runtime, bundles compatibility shim
           - name: macOS 14-15 (arm64)
-            runner: macos-15
+            runner: macos-latest
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
@@ -77,7 +77,7 @@ jobs:
               tar -C dist -czf dist/fragseal-macos-14-15-arm64.tar.gz fragseal-macos-14-15-arm64
             asset_path: dist/fragseal-macos-14-15-arm64.tar.gz
           - name: macOS 14-15 (x86_64)
-            runner: macos-15
+            runner: macos-latest
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
@@ -90,7 +90,7 @@ jobs:
               tar -C dist -czf dist/fragseal-macos-14-15-x86_64.tar.gz fragseal-macos-14-15-x86_64
             asset_path: dist/fragseal-macos-14-15-x86_64.tar.gz
           - name: macOS 14-15 (Universal)
-            runner: macos-15
+            runner: macos-latest
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
