@@ -258,6 +258,7 @@ def main():
         cmd = build_synthesize_command(qualified_name, compile_args)
         result = subprocess.run(cmd, capture_output=True, text=True, cwd=workspace)
         if result.returncode == 0 and result.stdout.strip():
+            print(f"import {qualified_name}\n")
             print(result.stdout)
             return
         # Submodule synthesis failed — fall through to single-header mode
@@ -266,6 +267,7 @@ def main():
     output = try_single_header(header_abs, module_name, compile_args, workspace)
     if output:
         print(f"// Swift interface for: {os.path.basename(header_path)}", file=sys.stderr)
+        print(f"// (from module {module_name})\n")
         print(output)
         return
 
@@ -277,6 +279,7 @@ def main():
     cmd = build_synthesize_command(module_name, compile_args)
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=workspace)
     if result.stdout:
+        print(f"import {module_name}\n")
         print(result.stdout)
     if result.returncode != 0:
         print(result.stderr, file=sys.stderr)
