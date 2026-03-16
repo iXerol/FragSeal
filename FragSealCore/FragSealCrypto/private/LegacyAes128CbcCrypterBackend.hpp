@@ -11,10 +11,10 @@ struct State;
 std::shared_ptr<const State> create_state(
     const std::array<uint8_t, LegacyAes128CbcCrypter::blockSize> &key) noexcept;
 
-std::optional<size_t> decrypt(
+OptionalSize decrypt(
     const State &state,
-    LegacyAes128CbcCrypter::ByteSpan iv,
-    LegacyAes128CbcCrypter::ByteSpan ciphertext,
-    LegacyAes128CbcCrypter::MutableByteSpan destination) noexcept;
+    ByteSpan iv,
+    ByteSpan ciphertext,
+    MutableByteSpan destination) noexcept;
 
 } // namespace fragseal::crypto::backend

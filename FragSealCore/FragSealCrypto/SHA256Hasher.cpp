@@ -9,9 +9,9 @@
 
 const std::size_t kSHA256DigestSize = SHA256Hasher::digestSize;
 
-std::optional<size_t>
-SHA256Hasher::hash(std::span<const uint8_t> data,
-                   std::span<uint8_t> destination) noexcept {
+OptionalSize
+SHA256Hasher::hash(ByteSpan data __noescape,
+                   MutableByteSpan destination __noescape) noexcept {
 #if defined(FRAGSEAL_ENABLE_OPENSSL)
     if (destination.size() < digestSize ||
         data.size() > static_cast<std::size_t>(std::numeric_limits<unsigned long>::max())) {

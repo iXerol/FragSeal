@@ -14,11 +14,11 @@ public extension LegacyAes128CbcCrypter {
 
     func decrypt(ivSpan: consuming Span<UInt8>, dataSpan: consuming Span<UInt8>) async throws (Error) -> Data {
         var plaintext = Data(count: dataSpan.count)
-        let destinationSpan = plaintext.mutableSpan
+        var destinationSpan = plaintext.mutableSpan
         let decryptedCount = decrypt(
-            iv: .init(ivSpan),
-            ciphertext: .init(dataSpan),
-            destination: .init(destinationSpan)
+            iv: ivSpan,
+            ciphertext: dataSpan,
+            destination: &destinationSpan
         )
             .value
             .map { Int($0) }
@@ -41,10 +41,11 @@ public extension Aes256GcmCrypter {
 
     func encrypt(nonceSpan: consuming Span<UInt8>, dataSpan: consuming Span<UInt8>) async throws(Error) -> Data {
         var ciphertext = Data(count: dataSpan.count + Self.tagSize)
+        var destinationSpan = ciphertext.mutableSpan
         let encryptedCount = encrypt(
-            nonce: .init(nonceSpan),
-            plaintext: .init(dataSpan),
-            destination: .init(ciphertext.mutableSpan)
+            nonce: nonceSpan,
+            plaintext: dataSpan,
+            destination: &destinationSpan
         )
             .value
             .map { Int($0) }
@@ -60,10 +61,11 @@ public extension Aes256GcmCrypter {
 
     func decrypt(nonceSpan: consuming Span<UInt8>, dataSpan: consuming Span<UInt8>) async throws(Error) -> Data {
         var plaintext = Data(count: dataSpan.count)
+        var destinationSpan = plaintext.mutableSpan
         let decryptedCount = decrypt(
-            nonce: .init(nonceSpan),
-            ciphertext: .init(dataSpan),
-            destination: .init(plaintext.mutableSpan)
+            nonce: nonceSpan,
+            ciphertext: dataSpan,
+            destination: &destinationSpan
         )
             .value
             .map { Int($0) }
@@ -86,10 +88,11 @@ public extension ChaCha20Poly1305Crypter {
 
     func encrypt(nonceSpan: consuming Span<UInt8>, dataSpan: consuming Span<UInt8>) async throws(Error) -> Data {
         var ciphertext = Data(count: dataSpan.count + Self.tagSize)
+        var destinationSpan = ciphertext.mutableSpan
         let encryptedCount = encrypt(
-            nonce: .init(nonceSpan),
-            plaintext: .init(dataSpan),
-            destination: .init(ciphertext.mutableSpan)
+            nonce: nonceSpan,
+            plaintext: dataSpan,
+            destination: &destinationSpan
         )
             .value
             .map { Int($0) }
@@ -105,10 +108,11 @@ public extension ChaCha20Poly1305Crypter {
 
     func decrypt(nonceSpan: consuming Span<UInt8>, dataSpan: consuming Span<UInt8>) async throws(Error) -> Data {
         var plaintext = Data(count: dataSpan.count)
+        var destinationSpan = plaintext.mutableSpan
         let decryptedCount = decrypt(
-            nonce: .init(nonceSpan),
-            ciphertext: .init(dataSpan),
-            destination: .init(plaintext.mutableSpan)
+            nonce: nonceSpan,
+            ciphertext: dataSpan,
+            destination: &destinationSpan
         )
             .value
             .map { Int($0) }
@@ -133,11 +137,12 @@ public extension PBKDF2KeyDeriver {
                              iterations: UInt32,
                              keySize: Int = Self.defaultKeySize) throws(Error) -> Data {
         var derived = Data(count: keySize)
+        var destinationSpan = derived.mutableSpan
         let derivedCount = deriveSHA256(
-            password: .init(password.span),
-            salt: .init(salt.span),
+            password: password.span,
+            salt: salt.span,
             iterations: iterations,
-            destination: .init(derived.mutableSpan)
+            destination: &destinationSpan
         )
             .value
             .map { Int($0) }
@@ -158,9 +163,10 @@ public extension SHA256Hasher {
 
     static func hash(data: Data) throws(Error) -> Data {
         var digest = Data(count: Self.digestSize)
+        var destinationSpan = digest.mutableSpan
         let digestCount = hash(
-            data: .init(data.span),
-            destination: .init(digest.mutableSpan)
+            data: data.span,
+            destination: &destinationSpan
         )
             .value
             .map { Int($0) }
@@ -181,7 +187,8 @@ public extension SecureRandom {
 
     static func data(count: Int) throws(Error) -> Data {
         var data = Data(count: count)
-        guard fill(destination: .init(data.mutableSpan)) else {
+        var destination = data.mutableSpan
+        guard fill(destination: &destination) else {
             throw .generationFailed
         }
         return data

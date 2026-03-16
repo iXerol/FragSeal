@@ -18,7 +18,7 @@ LegacyAes128CbcCrypter::LegacyAes128CbcCrypter(std::array<uint8_t, blockSize> ke
     backendState = fragseal::crypto::backend::create_state(key);
 }
 
-LegacyAes128CbcCrypter::LegacyAes128CbcCrypter(std::span<const uint8_t> keySpan) {
+LegacyAes128CbcCrypter::LegacyAes128CbcCrypter(ByteSpan keySpan __noescape) {
     if (keySpan.size() != blockSize) {
         assert(false && "LegacyAes128CbcCrypter key must be 16 bytes");
         std::abort();
@@ -27,10 +27,10 @@ LegacyAes128CbcCrypter::LegacyAes128CbcCrypter(std::span<const uint8_t> keySpan)
     backendState = fragseal::crypto::backend::create_state(key);
 }
 
-std::optional<size_t>
-LegacyAes128CbcCrypter::decrypt(LegacyAes128CbcCrypter::ByteSpan iv,
-                                LegacyAes128CbcCrypter::ByteSpan ciphertext,
-                                LegacyAes128CbcCrypter::MutableByteSpan destination) const noexcept {
+OptionalSize
+LegacyAes128CbcCrypter::decrypt(ByteSpan iv __noescape,
+                                ByteSpan ciphertext __noescape,
+                                MutableByteSpan destination __noescape) const noexcept {
     if (iv.size() != blockSize) {
         return {};
     }

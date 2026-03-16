@@ -24,7 +24,7 @@ const std::size_t kChaCha20Poly1305TagSize = ChaCha20Poly1305Crypter::tagSize;
 namespace {
 
 template <typename Crypter>
-void copyKey(std::span<const uint8_t> keySpan,
+void copyKey(ByteSpan keySpan,
              std::array<uint8_t, Crypter::keySize> &destination,
              const char *message) {
     if (keySpan.size() != Crypter::keySize) {
@@ -35,11 +35,11 @@ void copyKey(std::span<const uint8_t> keySpan,
 }
 
 template <typename Crypter, typename CipherGetter>
-std::optional<size_t> encryptAEAD(
+OptionalSize encryptAEAD(
     const std::array<uint8_t, Crypter::keySize> &key,
-    typename Crypter::ByteSpan nonce,
-    typename Crypter::ByteSpan plaintext,
-    typename Crypter::MutableByteSpan destination,
+    ByteSpan nonce,
+    ByteSpan plaintext,
+    MutableByteSpan destination,
     CipherGetter cipherGetter
 ) noexcept {
     if (nonce.size() != Crypter::nonceSize || destination.size() < plaintext.size() + Crypter::tagSize) {
@@ -93,11 +93,11 @@ std::optional<size_t> encryptAEAD(
 }
 
 template <typename Crypter, typename CipherGetter>
-std::optional<size_t> decryptAEAD(
+OptionalSize decryptAEAD(
     const std::array<uint8_t, Crypter::keySize> &key,
-    typename Crypter::ByteSpan nonce,
-    typename Crypter::ByteSpan ciphertext,
-    typename Crypter::MutableByteSpan destination,
+    ByteSpan nonce,
+    ByteSpan ciphertext,
+    MutableByteSpan destination,
     CipherGetter cipherGetter
 ) noexcept {
     if (nonce.size() != Crypter::nonceSize || ciphertext.size() < Crypter::tagSize) {
@@ -158,24 +158,24 @@ std::optional<size_t> decryptAEAD(
 
 Aes256GcmCrypter::Aes256GcmCrypter(std::array<uint8_t, keySize> keyBytes) : key(keyBytes) {}
 
-Aes256GcmCrypter::Aes256GcmCrypter(std::span<const uint8_t> keySpan) {
+Aes256GcmCrypter::Aes256GcmCrypter(ByteSpan keySpan __noescape) {
     copyKey<Aes256GcmCrypter>(keySpan, key, "Aes256GcmCrypter key must be 32 bytes");
 }
 
-std::optional<size_t>
-Aes256GcmCrypter::encrypt(ByteSpan nonce,
-                          ByteSpan plaintext,
-                          MutableByteSpan destination) const noexcept {
+OptionalSize
+Aes256GcmCrypter::encrypt(ByteSpan nonce __noescape,
+                          ByteSpan plaintext __noescape,
+                          MutableByteSpan destination __noescape) const noexcept {
     return encryptAEAD<Aes256GcmCrypter>(key, nonce, plaintext, destination,
                                          [](const fragseal::crypto::openssl_runtime::Symbols &symbols) {
                                              return symbols.evp_aes_256_gcm();
                                          });
 }
 
-std::optional<size_t>
-Aes256GcmCrypter::decrypt(ByteSpan nonce,
-                          ByteSpan ciphertext,
-                          MutableByteSpan destination) const noexcept {
+OptionalSize
+Aes256GcmCrypter::decrypt(ByteSpan nonce __noescape,
+                          ByteSpan ciphertext __noescape,
+                          MutableByteSpan destination __noescape) const noexcept {
     return decryptAEAD<Aes256GcmCrypter>(key, nonce, ciphertext, destination,
                                          [](const fragseal::crypto::openssl_runtime::Symbols &symbols) {
                                              return symbols.evp_aes_256_gcm();
@@ -184,24 +184,24 @@ Aes256GcmCrypter::decrypt(ByteSpan nonce,
 
 ChaCha20Poly1305Crypter::ChaCha20Poly1305Crypter(std::array<uint8_t, keySize> keyBytes) : key(keyBytes) {}
 
-ChaCha20Poly1305Crypter::ChaCha20Poly1305Crypter(std::span<const uint8_t> keySpan) {
+ChaCha20Poly1305Crypter::ChaCha20Poly1305Crypter(ByteSpan keySpan __noescape) {
     copyKey<ChaCha20Poly1305Crypter>(keySpan, key, "ChaCha20Poly1305Crypter key must be 32 bytes");
 }
 
-std::optional<size_t>
-ChaCha20Poly1305Crypter::encrypt(ByteSpan nonce,
-                                 ByteSpan plaintext,
-                                 MutableByteSpan destination) const noexcept {
+OptionalSize
+ChaCha20Poly1305Crypter::encrypt(ByteSpan nonce __noescape,
+                                 ByteSpan plaintext __noescape,
+                                 MutableByteSpan destination __noescape) const noexcept {
     return encryptAEAD<ChaCha20Poly1305Crypter>(key, nonce, plaintext, destination,
                                                 [](const fragseal::crypto::openssl_runtime::Symbols &symbols) {
                                                     return symbols.evp_chacha20_poly1305();
                                                 });
 }
 
-std::optional<size_t>
-ChaCha20Poly1305Crypter::decrypt(ByteSpan nonce,
-                                 ByteSpan ciphertext,
-                                 MutableByteSpan destination) const noexcept {
+OptionalSize
+ChaCha20Poly1305Crypter::decrypt(ByteSpan nonce __noescape,
+                                 ByteSpan ciphertext __noescape,
+                                 MutableByteSpan destination __noescape) const noexcept {
     return decryptAEAD<ChaCha20Poly1305Crypter>(key, nonce, ciphertext, destination,
                                                 [](const fragseal::crypto::openssl_runtime::Symbols &symbols) {
                                                     return symbols.evp_chacha20_poly1305();
@@ -218,13 +218,13 @@ const std::size_t kChaCha20Poly1305NonceSize = ChaCha20Poly1305Crypter::nonceSiz
 const std::size_t kChaCha20Poly1305TagSize = ChaCha20Poly1305Crypter::tagSize;
 
 Aes256GcmCrypter::Aes256GcmCrypter(std::array<uint8_t, keySize>) {}
-Aes256GcmCrypter::Aes256GcmCrypter(std::span<const uint8_t>) {}
-std::optional<size_t> Aes256GcmCrypter::encrypt(ByteSpan, ByteSpan, MutableByteSpan) const noexcept { return {}; }
-std::optional<size_t> Aes256GcmCrypter::decrypt(ByteSpan, ByteSpan, MutableByteSpan) const noexcept { return {}; }
+Aes256GcmCrypter::Aes256GcmCrypter(ByteSpan) {}
+OptionalSize Aes256GcmCrypter::encrypt(ByteSpan, ByteSpan, MutableByteSpan) const noexcept { return {}; }
+OptionalSize Aes256GcmCrypter::decrypt(ByteSpan, ByteSpan, MutableByteSpan) const noexcept { return {}; }
 
 ChaCha20Poly1305Crypter::ChaCha20Poly1305Crypter(std::array<uint8_t, keySize>) {}
-ChaCha20Poly1305Crypter::ChaCha20Poly1305Crypter(std::span<const uint8_t>) {}
-std::optional<size_t> ChaCha20Poly1305Crypter::encrypt(ByteSpan, ByteSpan, MutableByteSpan) const noexcept { return {}; }
-std::optional<size_t> ChaCha20Poly1305Crypter::decrypt(ByteSpan, ByteSpan, MutableByteSpan) const noexcept { return {}; }
+ChaCha20Poly1305Crypter::ChaCha20Poly1305Crypter(ByteSpan) {}
+OptionalSize ChaCha20Poly1305Crypter::encrypt(ByteSpan, ByteSpan, MutableByteSpan) const noexcept { return {}; }
+OptionalSize ChaCha20Poly1305Crypter::decrypt(ByteSpan, ByteSpan, MutableByteSpan) const noexcept { return {}; }
 
 #endif

@@ -9,11 +9,11 @@
 
 const std::size_t kPBKDF2DefaultKeySize = PBKDF2KeyDeriver::defaultKeySize;
 
-std::optional<size_t>
-PBKDF2KeyDeriver::deriveSHA256(std::span<const uint8_t> password,
-                               std::span<const uint8_t> salt,
+OptionalSize
+PBKDF2KeyDeriver::deriveSHA256(ByteSpan password __noescape,
+                               ByteSpan salt __noescape,
                                std::uint32_t iterations,
-                               std::span<uint8_t> destination) noexcept {
+                               MutableByteSpan destination __noescape) noexcept {
 #if defined(FRAGSEAL_ENABLE_OPENSSL)
     if (password.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()) ||
         salt.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()) ||

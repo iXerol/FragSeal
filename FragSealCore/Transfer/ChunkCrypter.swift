@@ -33,14 +33,14 @@ struct ChunkCrypter: Sendable {
 
         switch mode {
         case .aes256Gcm:
-            let crypter = Aes256GcmCrypter(keySpan: .init(key.span))
+            let crypter = Aes256GcmCrypter(keySpan: key.span)
             do {
                 return try await crypter.encrypt(nonceSpan: nonceOrIV.span, dataSpan: plaintext.span)
             } catch {
                 throw Error.encryptFailed(mode)
             }
         case .chacha20Poly1305:
-            let crypter = ChaCha20Poly1305Crypter(keySpan: .init(key.span))
+            let crypter = ChaCha20Poly1305Crypter(keySpan: key.span)
             do {
                 return try await crypter.encrypt(nonceSpan: nonceOrIV.span, dataSpan: plaintext.span)
             } catch {
@@ -60,21 +60,21 @@ struct ChunkCrypter: Sendable {
 
         switch mode {
         case .aes256Gcm:
-            let crypter = Aes256GcmCrypter(keySpan: .init(key.span))
+            let crypter = Aes256GcmCrypter(keySpan: key.span)
             do {
                 return try await crypter.decrypt(nonceSpan: nonceOrIV.span, dataSpan: ciphertext.span)
             } catch {
                 throw Error.decryptFailed(mode)
             }
         case .chacha20Poly1305:
-            let crypter = ChaCha20Poly1305Crypter(keySpan: .init(key.span))
+            let crypter = ChaCha20Poly1305Crypter(keySpan: key.span)
             do {
                 return try await crypter.decrypt(nonceSpan: nonceOrIV.span, dataSpan: ciphertext.span)
             } catch {
                 throw Error.decryptFailed(mode)
             }
         case .legacyAes128Cbc:
-            let crypter = LegacyAes128CbcCrypter(keySpan: .init(key.span))
+            let crypter = LegacyAes128CbcCrypter(keySpan: key.span)
             do {
                 return try await crypter.decrypt(ivSpan: nonceOrIV.span, dataSpan: ciphertext.span)
             } catch {
@@ -104,7 +104,7 @@ struct ChunkCrypter: Sendable {
     static func wrapKey(_ dataKey: Data,
                         with wrappingKey: Data) async throws -> Data {
         let nonce = try randomBytes(count: Aes256GcmCrypter.nonceSize)
-        let crypter = Aes256GcmCrypter(keySpan: .init(wrappingKey.span))
+        let crypter = Aes256GcmCrypter(keySpan: wrappingKey.span)
         let ciphertext = try await crypter.encrypt(nonceSpan: nonce.span, dataSpan: dataKey.span)
         return nonce + ciphertext
     }
@@ -117,7 +117,7 @@ struct ChunkCrypter: Sendable {
         }
         let nonce = wrappedKey.prefix(nonceSize)
         let ciphertext = wrappedKey.dropFirst(nonceSize)
-        let crypter = Aes256GcmCrypter(keySpan: .init(wrappingKey.span))
+        let crypter = Aes256GcmCrypter(keySpan: wrappingKey.span)
         do {
             return try await crypter.decrypt(nonceSpan: nonce.span, dataSpan: ciphertext.span)
         } catch {
