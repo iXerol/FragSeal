@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
-"""Show the synthesized Swift interface for a Clang header.
+"""Show the synthesized Swift interface for a Clang module containing a header.
 
 Usage: show-swift-interface.py <header-file>
 
-Creates a temporary single-header module and runs swift-synthesize-interface
-to show only the Swift API exposed by that specific file.
-Falls back to the full containing module if the header is not self-contained.
+Reads compile_commands.json to find the module that owns the given header,
+then runs swift-synthesize-interface on the full module (including submodules).
 """
 
 import json
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 
@@ -56,20 +54,26 @@ def find_containing_module(header_path: str, modulemap_paths: set[str], workspac
         mmap_dir = os.path.dirname(mmap_abs)
         module_name = None
         for line in content.splitlines():
-            line = line.strip()
-            if line.startswith("module ") and '"' in line:
-                module_name = line.split('"')[1]
+            stripped = line.strip()
+            if stripped.startswith("module ") and "{" in stripped:
+                # Module name may be quoted ("Name") or unquoted (Name)
+                name_part = stripped[len("module "):].split("{")[0].strip()
+                if name_part.startswith('"'):
+                    module_name = name_part.split('"')[1]
+                elif name_part:
+                    module_name = name_part
                 break
         if not module_name:
             continue
 
         for line in content.splitlines():
-            line = line.strip()
-            if not line.startswith("header ") or '"' not in line:
+            stripped = line.strip()
+            if not stripped.startswith("header ") or '"' not in stripped:
                 continue
-            parts = line.split('"')
+            parts = stripped.split('"')
             if len(parts) < 2:
                 continue
+            # Header paths are relative to the modulemap's directory
             candidate = os.path.normpath(os.path.join(mmap_dir, parts[1]))
             if candidate == header_abs:
                 return module_name, mmap_abs
@@ -97,7 +101,7 @@ def find_args_for_modulemap(modulemap_abs: str, compile_commands: list, workspac
     return None, None
 
 
-def build_synthesize_command(module_name: str, compile_args: list, extra_modulemap: str | None = None) -> list:
+def build_synthesize_command(module_name: str, compile_args: list) -> list:
     try:
         tool = subprocess.check_output(
             ["xcrun", "--find", "swift-synthesize-interface"],
@@ -106,7 +110,7 @@ def build_synthesize_command(module_name: str, compile_args: list, extra_modulem
     except Exception:
         tool = "swift-synthesize-interface"
 
-    cmd = [tool, "-module-name", module_name]
+    cmd = [tool, "-module-name", module_name, "-include-submodules"]
 
     i = 1  # skip argv[0] ("swiftc")
     while i < len(compile_args):
@@ -149,29 +153,7 @@ def build_synthesize_command(module_name: str, compile_args: list, extra_modulem
 
         i += 1
 
-    if extra_modulemap:
-        cmd += ["-Xcc", f"-fmodule-map-file={extra_modulemap}"]
-
     return cmd
-
-
-def try_single_header(header_abs: str, module_name: str, compile_args: list, workspace: str) -> str | None:
-    """Try synthesizing interface for a single header via a temporary modulemap.
-    Returns the output string, or None if it fails."""
-    temp_module = f"_SwiftInterfacePreview_{Path(header_abs).stem}"
-    modulemap_content = f'module "{temp_module}" {{\n    export *\n    header "{header_abs}"\n}}\n'
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        mmap_path = os.path.join(tmpdir, "module.modulemap")
-        with open(mmap_path, "w") as f:
-            f.write(modulemap_content)
-
-        cmd = build_synthesize_command(temp_module, compile_args, extra_modulemap=mmap_path)
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=workspace)
-
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout
-        return None
 
 
 def main():
@@ -201,23 +183,12 @@ def main():
         print(f"No compile args found for module: {module_name}", file=sys.stderr)
         sys.exit(1)
 
-    header_abs = str(Path(os.path.join(workspace, header_path)).resolve())
+    print(f"// Swift interface for module: {module_name}", file=sys.stderr)
 
-    # Try single-header mode first
-    output = try_single_header(header_abs, module_name, compile_args, workspace)
-    if output:
-        print(f"// Swift interface for: {os.path.basename(header_path)}", file=sys.stderr)
-        print(output)
-        return
-
-    # Fallback: full module
-    print(
-        f"// {os.path.basename(header_path)} is not self-contained; showing full module '{module_name}'",
-        file=sys.stderr,
-    )
     cmd = build_synthesize_command(module_name, compile_args)
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=workspace)
     if result.stdout:
+        print(f"import {module_name}\n")
         print(result.stdout)
     if result.returncode != 0:
         print(result.stderr, file=sys.stderr)
