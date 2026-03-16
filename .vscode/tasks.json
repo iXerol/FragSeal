@@ -18,7 +18,7 @@
         {
             "label": "Show Swift Interface for Clang Header",
             "type": "shell",
-            "command": "python3 ${workspaceFolder}/Scripts/show-swift-interface.py ${file} | code -",
+            "command": "OUT=\"/tmp/${fileBasenameNoExtension}.swiftinterface\"; python3 ${workspaceFolder}/Scripts/show-swift-interface.py ${file} > \"$OUT\" && code \"$OUT\"",
             "presentation": {
                 "reveal": "silent",
                 "panel": "shared"
