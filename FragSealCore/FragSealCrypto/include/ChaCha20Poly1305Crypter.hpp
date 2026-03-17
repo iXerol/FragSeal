@@ -22,7 +22,7 @@ public:
     static constexpr std::size_t tagSize = 16;
 
     explicit ChaCha20Poly1305Crypter(std::array<uint8_t, keySize>) SWIFT_NAME(init(key:));
-    explicit ChaCha20Poly1305Crypter(ByteSpan __noescape) SWIFT_NAME(init(keySpan:));
+    explicit ChaCha20Poly1305Crypter(ByteSpan key __noescape) SWIFT_NAME(init(keySpan:));
     ChaCha20Poly1305Crypter(const ChaCha20Poly1305Crypter&) = default;
     ChaCha20Poly1305Crypter& operator=(const ChaCha20Poly1305Crypter&) = default;
     ~ChaCha20Poly1305Crypter() = default;

@@ -23,7 +23,7 @@ public:
     static constexpr std::size_t blockSize = 16;
 
     explicit LegacyAes128CbcCrypter(std::array<uint8_t, blockSize>) SWIFT_NAME(init(key:));
-    explicit LegacyAes128CbcCrypter(ByteSpan __noescape) SWIFT_NAME(init(keySpan:));
+    explicit LegacyAes128CbcCrypter(ByteSpan key __noescape) SWIFT_NAME(init(keySpan:));
     LegacyAes128CbcCrypter(const LegacyAes128CbcCrypter&) = default;
     LegacyAes128CbcCrypter& operator=(const LegacyAes128CbcCrypter&) = default;
     ~LegacyAes128CbcCrypter() = default;

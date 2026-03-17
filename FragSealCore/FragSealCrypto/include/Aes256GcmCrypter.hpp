@@ -22,7 +22,7 @@ public:
     static constexpr std::size_t tagSize = 16;
 
     explicit Aes256GcmCrypter(std::array<uint8_t, keySize>) SWIFT_NAME(init(key:));
-    explicit Aes256GcmCrypter(ByteSpan __noescape) SWIFT_NAME(init(keySpan:));
+    explicit Aes256GcmCrypter(ByteSpan key __noescape) SWIFT_NAME(init(keySpan:));
     Aes256GcmCrypter(const Aes256GcmCrypter&) = default;
     Aes256GcmCrypter& operator=(const Aes256GcmCrypter&) = default;
     ~Aes256GcmCrypter() = default;
