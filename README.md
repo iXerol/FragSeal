@@ -1,7 +1,9 @@
 # FragSeal
 
 ![Swift](https://img.shields.io/badge/Swift-6.2-orange)
-![macOS](https://img.shields.io/badge/macOS-14.0%2B-blue)
+![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux-blue)
+![macOS](https://img.shields.io/badge/macOS-14%2B-blue)
+[![CI](https://github.com/iXerol/FragSeal/actions/workflows/ci.yml/badge.svg)](https://github.com/iXerol/FragSeal/actions/workflows/ci.yml)
 
 FragSeal is a secure single-file backup CLI. It splits a file into chunks,
 encrypts each chunk in the C++ cryptography layer, uploads them through an object
@@ -17,10 +19,43 @@ The public surface is intentionally storage- and backup-oriented:
 
 | Host | Build / Run mode |
 | --- | --- |
-| macOS 14+ | Supported |
 | macOS 26+ | Native CLI binary |
-| macOS 14-25 | Backdeploy bundle |
+| macOS 14+ | Backdeploy bundle (also runs on 26+) |
 | Linux | Build and test on a Linux host or Docker container |
+
+## Install
+
+Prebuilt binaries are published for each release:
+[GitHub Releases](https://github.com/iXerol/FragSeal/releases/latest)
+
+Choose the asset for your host (`<tag>` example: `v0.1.4`):
+
+| Host | Asset |
+| --- | --- |
+| macOS 26+ | `fragseal-<tag>-macos-26-universal.tar.gz` |
+| macOS 14+ | `fragseal-<tag>-macos-14-universal.tar.gz` |
+| Linux x86_64 | `fragseal-<tag>-linux-x86_64.tar.gz` |
+| Linux arm64 | `fragseal-<tag>-linux-arm64.tar.gz` |
+
+For single-binary assets (macOS 26+ and Linux):
+
+```sh
+TAG=v0.1.4
+tar -xzf "fragseal-${TAG}-linux-x86_64.tar.gz"
+sudo install -m 755 fragseal-linux-x86_64/fragseal /usr/local/bin/fragseal
+fragseal --help
+```
+
+For macOS 14+ backdeploy bundle:
+
+```sh
+TAG=v0.1.4
+tar -xzf "fragseal-${TAG}-macos-14-universal.tar.gz"
+cd fragseal-macos-14-universal
+./fragseal --help
+```
+
+Keep the `Frameworks/` directory next to `fragseal` in the backdeploy bundle.
 
 ## Build with Bazel
 
@@ -274,11 +309,11 @@ compiler flags to pass to `swift-synthesize-interface`.
 
 ## Backdeploy note
 
-On macOS earlier than 26, run the backdeploy bundle produced by:
+To validate backdeploy behavior on macOS (including 26+), run the backdeploy bundle produced by:
 
 ```sh
 make build PLATFORM=macos RUNTIME=backdeploy
 ./bazel-bin/FragSeal/fragseal_backdeploy
 ```
 
-Do not run the native `fragseal` binary directly on macOS 14-15.
+On macOS 26+, prefer the native binary for normal use; use backdeploy only for compatibility validation.
