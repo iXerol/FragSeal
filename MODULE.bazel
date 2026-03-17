@@ -3,9 +3,9 @@
 bazel_dep(name = "bis", version = "0.5.2", dev_dependency = True)
 archive_override(
     module_name = "bis",
-    urls = ["https://github.com/xinzhengzhang/bis/archive/refs/tags/0.5.2.tar.gz"],
-    strip_prefix = "bis-0.5.2",
     integrity = "sha256-YZAt2FXvY/gF48maQocpWVBAhyAfqplbtN6TYbVZgq4=",
+    strip_prefix = "bis-0.5.2",
+    urls = ["https://github.com/xinzhengzhang/bis/archive/refs/tags/0.5.2.tar.gz"],
 )
 
 bazel_dep(name = "rules_xcodeproj", version = "3.6.0")
@@ -24,7 +24,6 @@ bazel_dep(name = "apple_support", version = "2.3.0", repo_name = "build_bazel_ap
 bazel_dep(name = "rules_cc", version = "0.2.17")
 bazel_dep(name = "gazelle", version = "0.47.0")
 bazel_dep(name = "rules_swift_package_manager", version = "1.13.0")
-
 single_version_override(
     module_name = "rules_swift_package_manager",
     patch_strip = 1,
@@ -79,10 +78,6 @@ swift_deps.configure_package(
 swift_deps.from_package(
     resolved = "//:Package.resolved",
     swift = "//:Package.swift",
-    env_inherit = [
-        "PATH",
-        "HOME",
-    ],
 )
 use_repo(
     swift_deps,
