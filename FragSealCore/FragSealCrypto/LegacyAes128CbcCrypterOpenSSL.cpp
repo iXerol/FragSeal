@@ -53,11 +53,11 @@ std::shared_ptr<const State> create_state(
     return state;
 }
 
-std::optional<size_t> decrypt(
+OptionalSize decrypt(
     const State &state,
-    LegacyAes128CbcCrypter::ByteSpan iv,
-    LegacyAes128CbcCrypter::ByteSpan ciphertext,
-    LegacyAes128CbcCrypter::MutableByteSpan destination) noexcept {
+    ByteSpan iv,
+    ByteSpan ciphertext,
+    MutableByteSpan destination) noexcept {
     const auto bufferCount = ciphertext.size();
     if (bufferCount > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
         return {};

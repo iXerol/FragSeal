@@ -5,13 +5,13 @@
 
 #pragma once
 
-#include <cstdint>
+#include <lifetimebound.h>
 #include <swift/bridging>
-#include <span>
+#include "SpanTypes.hpp"
 
 class SWIFT_UNCHECKED_SENDABLE SecureRandom {
 public:
     static bool fill(
-        std::span<uint8_t> destination
+        MutableByteSpan destination __noescape
     ) noexcept SWIFT_NAME(fill(destination:));
 };

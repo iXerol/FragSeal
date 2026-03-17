@@ -1,0 +1,42 @@
+name: Update MODULE.bazel.lock
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-lock:
+    name: Regenerate lock file
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Select Xcode 26
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install Bazel
+        uses: bazel-contrib/setup-bazel@0.18.0
+        with:
+          bazelisk-cache: true
+
+      - name: Regenerate lock file
+        run: bazel mod tidy
+
+      - name: Commit updated lock file
+        run: |
+          if git diff --quiet MODULE.bazel.lock; then
+            echo "Lock file is already up to date."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add MODULE.bazel.lock
+            git commit -m "Update MODULE.bazel.lock"
+            git push
+          fi

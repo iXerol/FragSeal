@@ -7,10 +7,10 @@
 
 #include <swift/bridging>
 #include <array>
-#include <optional>
 #include <cstdint>
+#include <lifetimebound.h>
 #include <memory>
-#include <span>
+#include "SpanTypes.hpp"
 
 namespace fragseal::crypto::backend {
 struct State;
@@ -23,18 +23,15 @@ public:
     static constexpr std::size_t blockSize = 16;
 
     explicit LegacyAes128CbcCrypter(std::array<uint8_t, blockSize>) SWIFT_NAME(init(key:));
-    explicit LegacyAes128CbcCrypter(std::span<const uint8_t>) SWIFT_NAME(init(keySpan:));
+    explicit LegacyAes128CbcCrypter(ByteSpan key __noescape) SWIFT_NAME(init(keySpan:));
     LegacyAes128CbcCrypter(const LegacyAes128CbcCrypter&) = default;
     LegacyAes128CbcCrypter& operator=(const LegacyAes128CbcCrypter&) = default;
     ~LegacyAes128CbcCrypter() = default;
 
-    using ByteSpan = std::span<const uint8_t>;
-    using MutableByteSpan = std::span<uint8_t>;
-
-    std::optional<size_t> decrypt(
-        ByteSpan iv,
-        ByteSpan ciphertext,
-        MutableByteSpan destination
+    OptionalSize decrypt(
+        ByteSpan iv __noescape,
+        ByteSpan ciphertext __noescape,
+        MutableByteSpan destination __noescape
     ) const noexcept SWIFT_NAME(decrypt(iv:ciphertext:destination:));
 
 private:

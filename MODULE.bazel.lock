@@ -128,6 +128,7 @@
     "https://bcr.bazel.build/modules/re2/2024-07-02/MODULE.bazel": "0eadc4395959969297cbcf31a249ff457f2f1d456228c67719480205aa306daa",
     "https://bcr.bazel.build/modules/rules_android/0.1.1/MODULE.bazel": "48809ab0091b07ad0182defb787c4c5328bd3a278938415c00a7b69b50c4d3a8",
     "https://bcr.bazel.build/modules/rules_android/0.1.1/source.json": "e6986b41626ee10bdc864937ffb6d6bf275bb5b9c65120e6137d56e6331f089e",
+    "https://bcr.bazel.build/modules/rules_apple/3.11.2/MODULE.bazel": "63fc55e6baa3461fee456c1114045d435e391691849f669660d4962a6e929a15",
     "https://bcr.bazel.build/modules/rules_apple/4.0.1/MODULE.bazel": "dec3ca18ca4680c66a33341918ef5160ba37b51b282435e2ec01490b2f873475",
     "https://bcr.bazel.build/modules/rules_apple/4.3.3/MODULE.bazel": "c5c2c4adeeac5f3f2f9b7f16abfa8be7ffefa596171d0d92bed4cae9ade0a498",
     "https://bcr.bazel.build/modules/rules_apple/4.5.0/MODULE.bazel": "7038309caf203607b095b3aeb075da239a42c37661dfb3b4c570bc1a2acd0a16",
@@ -224,6 +225,8 @@
     "https://bcr.bazel.build/modules/rules_shell/0.6.1/MODULE.bazel": "72e76b0eea4e81611ef5452aa82b3da34caca0c8b7b5c0c9584338aa93bae26b",
     "https://bcr.bazel.build/modules/rules_shell/0.6.1/source.json": "20ec05cd5e592055e214b2da8ccb283c7f2a421ea0dc2acbf1aa792e11c03d0c",
     "https://bcr.bazel.build/modules/rules_swift/1.16.0/MODULE.bazel": "4a09f199545a60d09895e8281362b1ff3bb08bbde69c6fc87aff5b92fcc916ca",
+    "https://bcr.bazel.build/modules/rules_swift/1.18.0/MODULE.bazel": "a6aba73625d0dc64c7b4a1e831549b6e375fbddb9d2dde9d80c9de6ec45b24c9",
+    "https://bcr.bazel.build/modules/rules_swift/2.1.1/MODULE.bazel": "494900a80f944fc7aa61500c2073d9729dff0b764f0e89b824eb746959bc1046",
     "https://bcr.bazel.build/modules/rules_swift/2.4.0/MODULE.bazel": "1639617eb1ede28d774d967a738b4a68b0accb40650beadb57c21846beab5efd",
     "https://bcr.bazel.build/modules/rules_swift/3.1.1/MODULE.bazel": "4f5a74a7b3204136abf986fd90330f95b78269cea9daa443e5f803e6d37b3771",
     "https://bcr.bazel.build/modules/rules_swift/3.4.1/MODULE.bazel": "c53b33c3f9db4e9cfe1b41ab12e909d62af1eeb9d15e4c0bfe0f39168c80ba44",
@@ -261,6 +264,53 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
+    "@@bis+//:extensions.bzl%deps_ext": {
+      "general": {
+        "bzlTransitiveDigest": "4ZZiwErYWsc/GYOhvs0HCV/q2KmHD1YN5dC6fT2eDuY=",
+        "usagesDigest": "cfQafmA+Tc02m+Dn4zpLjjg7mTF1sAZRvD0o3WqHv44=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "hedron_compile_commands": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "urls": [
+                "https://github.com/hedronvision/bazel-compile-commands-extractor/archive/f7388651ee99608fb5f6336764657596e2f84b97.zip"
+              ],
+              "strip_prefix": "bazel-compile-commands-extractor-f7388651ee99608fb5f6336764657596e2f84b97",
+              "sha256": "e8607c4c398fa048e035f8e19895cb2a464dabf2560d7d37df90ad82c687bbb8",
+              "patch_args": [
+                "-p1"
+              ],
+              "patches": [
+                "@@bis+//:patches/file_filter.patch",
+                "@@bis+//:patches/swift_support.patch",
+                "@@bis+//:patches/subtarget.patch",
+                "@@bis+//:patches/remove-features-and-skip-syntax-only.patch"
+              ]
+            }
+          },
+          "xctestrunner": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "urls": [
+                "https://github.com/google/xctestrunner/archive/24629f3e6c0dda397f14924b64eb45d04433c07e.tar.gz"
+              ],
+              "strip_prefix": "xctestrunner-24629f3e6c0dda397f14924b64eb45d04433c07e",
+              "sha256": "6e692722c3b3d5f2573357870c78febe8419b18ab28565bc6a1d9ddd28c8ec51"
+            }
+          }
+        },
+        "recordedRepoMappingEntries": [
+          [
+            "bis+",
+            "bazel_tools",
+            "bazel_tools"
+          ]
+        ]
+      }
+    },
     "@@buildifier_prebuilt+//:defs.bzl%buildifier_prebuilt_deps_extension": {
       "general": {
         "bzlTransitiveDigest": "UuPPKtgkayflJh3xnoDcElnjA0xyLYaim0cMSFV12v8=",
@@ -806,7 +856,7 @@
     },
     "@@rules_swift_package_manager+//:extensions.bzl%swift_deps": {
       "general": {
-        "bzlTransitiveDigest": "vac2WLXKtv6xFOmcVPAwBP30tj4v1nXkwxZjpr67nDk=",
+        "bzlTransitiveDigest": "AjebOuFQoJA8iIqX7lEdNBEmsT8k15vyUZeyYMp0sUk=",
         "usagesDigest": "GsmwoJPxvcJQBEJLYHgfxQH2KRKvyQkW9HCU/92U10k=",
         "recordedFileInputs": {
           "@@//Package.resolved": "0be52c9e7d86fbe3ca08b632c91fa823a3fb7fb8ee1a1f1cab42abcbe1eb9780"

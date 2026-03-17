@@ -17,11 +17,11 @@ std::shared_ptr<const State> create_state(
     return std::make_shared<const State>(State{ key });
 }
 
-std::optional<size_t> decrypt(
+OptionalSize decrypt(
     const State &                    state,
-    LegacyAes128CbcCrypter::ByteSpan        iv,
-    LegacyAes128CbcCrypter::ByteSpan        ciphertext,
-    LegacyAes128CbcCrypter::MutableByteSpan destination) noexcept {
+    ByteSpan                         iv,
+    ByteSpan                         ciphertext,
+    MutableByteSpan                  destination) noexcept {
     static_assert(kCCBlockSizeAES128 == LegacyAes128CbcCrypter::blockSize);
 
     size_t bytesDecrypted = 0;

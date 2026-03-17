@@ -152,7 +152,7 @@ build:
 					echo "ARCH is only supported for macOS CLI builds; omit ARCH for PLATFORM=linux." >&2; \
 					exit 1; \
 				fi; \
-				bazel_target="//FragSeal:fragseal_cli_linux"; \
+				bazel_target="//FragSeal:fragseal"; \
 			else \
 				case "$$runtime" in \
 					auto) \

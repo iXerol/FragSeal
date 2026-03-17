@@ -7,7 +7,7 @@
 #include "private/OpenSSLRuntime.hpp"
 #include <limits>
 
-bool SecureRandom::fill(std::span<uint8_t> destination) noexcept {
+bool SecureRandom::fill(MutableByteSpan destination __noescape) noexcept {
 #if defined(FRAGSEAL_ENABLE_OPENSSL)
     if (destination.size() > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
         return false;
