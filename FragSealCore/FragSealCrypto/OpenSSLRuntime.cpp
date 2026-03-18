@@ -14,6 +14,14 @@ namespace fragseal::crypto::openssl_runtime {
 
 namespace {
 
+bool opensslForcedUnavailable() noexcept {
+    const auto *value = std::getenv("FRAGSEAL_OPENSSL_FORCE_UNAVAILABLE");
+    if (value == nullptr || value[0] == '\0') {
+        return false;
+    }
+    return !(value[0] == '0' && value[1] == '\0');
+}
+
 struct Loader final {
     Symbols symbols;
     void *handle = nullptr;
@@ -85,6 +93,10 @@ struct Loader final {
 } // namespace
 
 const Symbols *load_symbols() noexcept {
+    if (opensslForcedUnavailable()) {
+        return nullptr;
+    }
+
     static Loader loader;
     static std::once_flag onceFlag;
     static bool loaded = false;

@@ -53,6 +53,83 @@ create_input_file() {
     done
 }
 
+unset_passphrase() {
+    unset FRAGSEAL_PASSPHRASE 2>/dev/null || true
+}
+
+supports_algorithm() {
+    local binary_path="$1"
+    local algorithm="$2"
+    local test_root="$TEST_TMPDIR/support-$algorithm"
+    local storage_root="$test_root/storage"
+    local input_path="$test_root/input.txt"
+    local manifest_path="$test_root/manifest.toml"
+
+    rm -rf "$test_root"
+    mkdir -p "$storage_root"
+    create_input_file "$input_path"
+    export FRAGSEAL_PASSPHRASE="fragseal-passphrase"
+
+    if "$binary_path" upload \
+        --input "$input_path" \
+        --manifest "$manifest_path" \
+        --storage-uri "file://$storage_root" \
+        --chunk-size 512 \
+        --algorithm "$algorithm" >/dev/null 2>&1; then
+        return 0
+    fi
+    return 1
+}
+
+expect_noninteractive_upload_without_algorithm_fails() {
+    local binary_path="$1"
+    local test_root="$TEST_TMPDIR/no-algorithm-noninteractive"
+    local storage_root="$test_root/storage"
+    local input_path="$test_root/input.txt"
+    local manifest_path="$test_root/manifest.toml"
+    local stderr_path="$test_root/stderr.log"
+
+    rm -rf "$test_root"
+    mkdir -p "$storage_root"
+    create_input_file "$input_path"
+    unset_passphrase
+
+    if "$binary_path" upload \
+        --input "$input_path" \
+        --manifest "$manifest_path" \
+        --storage-uri "file://$storage_root" \
+        --chunk-size 512 >"$test_root/stdout.log" 2>"$stderr_path"; then
+        echo "Expected upload without --algorithm to fail in non-interactive mode." >&2
+        exit 1
+    fi
+
+    grep -q "Missing --algorithm in non-interactive mode" "$stderr_path"
+}
+
+expect_encrypted_upload_requires_passphrase() {
+    local binary_path="$1"
+    local algorithm="$2"
+    local test_root="$TEST_TMPDIR/missing-passphrase-$algorithm"
+    local storage_root="$test_root/storage"
+    local input_path="$test_root/input.txt"
+    local manifest_path="$test_root/manifest.toml"
+
+    rm -rf "$test_root"
+    mkdir -p "$storage_root"
+    create_input_file "$input_path"
+    unset_passphrase
+
+    if "$binary_path" upload \
+        --input "$input_path" \
+        --manifest "$manifest_path" \
+        --storage-uri "file://$storage_root" \
+        --chunk-size 512 \
+        --algorithm "$algorithm" >/dev/null 2>&1; then
+        echo "Expected upload with $algorithm to require a passphrase." >&2
+        exit 1
+    fi
+}
+
 run_round_trip() {
     local binary_path="$1"
     local test_name="$2"
@@ -70,7 +147,11 @@ run_round_trip() {
     mkdir -p "$storage_root"
     create_input_file "$input_path"
 
-    export FRAGSEAL_PASSPHRASE="fragseal-passphrase"
+    if [[ "$algorithm" == "none" ]]; then
+        unset_passphrase
+    else
+        export FRAGSEAL_PASSPHRASE="fragseal-passphrase"
+    fi
 
     local upload_args=(
         upload
@@ -78,16 +159,21 @@ run_round_trip() {
         --manifest "$manifest_path"
         --storage-uri "file://$storage_root"
         --chunk-size 1024
+        --algorithm "$algorithm"
     )
-    if [[ -n "$algorithm" ]]; then
-        upload_args+=(--algorithm "$algorithm")
-    fi
 
     "$binary_path" --help >/dev/null
     "$binary_path" "${upload_args[@]}" >/dev/null
 
     [[ -f "$manifest_path" ]]
-    grep -Eq "mode = ['\"]$expected_mode['\"]" "$manifest_path"
+    if [[ -n "$expected_mode" ]]; then
+        grep -Eq "mode = ['\"]$expected_mode['\"]" "$manifest_path"
+    else
+        if grep -Eq "mode = " "$manifest_path"; then
+            echo "Expected no encryption.mode entry for no-encryption uploads." >&2
+            exit 1
+        fi
+    fi
 
     remote_manifest_path="$(find "$storage_root" -path '*/manifest.toml' -type f | head -n 1)"
     if [[ -z "$remote_manifest_path" ]]; then
@@ -132,8 +218,17 @@ main() {
         runnable_path="$runtime_root/fragseal_backdeploy"
     fi
 
-    run_round_trip "$runnable_path" "default-round-trip" "" "aes-256-gcm"
-    run_round_trip "$runnable_path" "chacha-round-trip" "chacha20-poly1305" "chacha20-poly1305"
+    expect_noninteractive_upload_without_algorithm_fails "$runnable_path"
+
+    if supports_algorithm "$runnable_path" "aes-256-gcm"; then
+        expect_encrypted_upload_requires_passphrase "$runnable_path" "aes-256-gcm"
+        run_round_trip "$runnable_path" "aes-round-trip" "aes-256-gcm" "aes-256-gcm"
+    fi
+    if supports_algorithm "$runnable_path" "chacha20-poly1305"; then
+        expect_encrypted_upload_requires_passphrase "$runnable_path" "chacha20-poly1305"
+        run_round_trip "$runnable_path" "chacha-round-trip" "chacha20-poly1305" "chacha20-poly1305"
+    fi
+    run_round_trip "$runnable_path" "none-round-trip" "none" ""
 }
 
 main "$@"

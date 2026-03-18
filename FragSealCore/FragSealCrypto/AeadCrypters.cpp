@@ -217,14 +217,58 @@ const std::size_t kChaCha20Poly1305KeySize = ChaCha20Poly1305Crypter::keySize;
 const std::size_t kChaCha20Poly1305NonceSize = ChaCha20Poly1305Crypter::nonceSize;
 const std::size_t kChaCha20Poly1305TagSize = ChaCha20Poly1305Crypter::tagSize;
 
-Aes256GcmCrypter::Aes256GcmCrypter(std::array<uint8_t, keySize>) {}
-Aes256GcmCrypter::Aes256GcmCrypter(ByteSpan) {}
-OptionalSize Aes256GcmCrypter::encrypt(ByteSpan, ByteSpan, MutableByteSpan) const noexcept { return {}; }
-OptionalSize Aes256GcmCrypter::decrypt(ByteSpan, ByteSpan, MutableByteSpan) const noexcept { return {}; }
+Aes256GcmCrypter::Aes256GcmCrypter(std::array<uint8_t, keySize> keyBytes) : key(keyBytes) {}
+Aes256GcmCrypter::Aes256GcmCrypter(ByteSpan keySpan __noescape) {
+    if (keySpan.size() != keySize) {
+        assert(false && "Aes256GcmCrypter key must be 32 bytes");
+        std::abort();
+    }
+    std::copy_n(keySpan.begin(), keySize, key.begin());
+}
+OptionalSize
+Aes256GcmCrypter::encrypt(ByteSpan nonce __noescape,
+                          ByteSpan plaintext __noescape,
+                          MutableByteSpan destination __noescape) const noexcept {
+    (void) nonce;
+    (void) plaintext;
+    (void) destination;
+    return {};
+}
+OptionalSize
+Aes256GcmCrypter::decrypt(ByteSpan nonce __noescape,
+                          ByteSpan ciphertext __noescape,
+                          MutableByteSpan destination __noescape) const noexcept {
+    (void) nonce;
+    (void) ciphertext;
+    (void) destination;
+    return {};
+}
 
-ChaCha20Poly1305Crypter::ChaCha20Poly1305Crypter(std::array<uint8_t, keySize>) {}
-ChaCha20Poly1305Crypter::ChaCha20Poly1305Crypter(ByteSpan) {}
-OptionalSize ChaCha20Poly1305Crypter::encrypt(ByteSpan, ByteSpan, MutableByteSpan) const noexcept { return {}; }
-OptionalSize ChaCha20Poly1305Crypter::decrypt(ByteSpan, ByteSpan, MutableByteSpan) const noexcept { return {}; }
+ChaCha20Poly1305Crypter::ChaCha20Poly1305Crypter(std::array<uint8_t, keySize> keyBytes) : key(keyBytes) {}
+ChaCha20Poly1305Crypter::ChaCha20Poly1305Crypter(ByteSpan keySpan __noescape) {
+    if (keySpan.size() != keySize) {
+        assert(false && "ChaCha20Poly1305Crypter key must be 32 bytes");
+        std::abort();
+    }
+    std::copy_n(keySpan.begin(), keySize, key.begin());
+}
+OptionalSize
+ChaCha20Poly1305Crypter::encrypt(ByteSpan nonce __noescape,
+                                 ByteSpan plaintext __noescape,
+                                 MutableByteSpan destination __noescape) const noexcept {
+    (void) nonce;
+    (void) plaintext;
+    (void) destination;
+    return {};
+}
+OptionalSize
+ChaCha20Poly1305Crypter::decrypt(ByteSpan nonce __noescape,
+                                 ByteSpan ciphertext __noescape,
+                                 MutableByteSpan destination __noescape) const noexcept {
+    (void) nonce;
+    (void) ciphertext;
+    (void) destination;
+    return {};
+}
 
 #endif
