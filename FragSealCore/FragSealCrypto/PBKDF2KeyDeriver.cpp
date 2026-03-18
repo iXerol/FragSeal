@@ -23,21 +23,57 @@ PBKDF2KeyDeriver::deriveSHA256(ByteSpan password __noescape,
     }
 
     const auto *symbols = fragseal::crypto::openssl_runtime::load_symbols();
-    if (symbols == nullptr) {
-        return {};
+    if (symbols != nullptr) {
+        const auto result = symbols->pkcs5_pbkdf2_hmac(
+            reinterpret_cast<const char *>(password.data()),
+            static_cast<int>(password.size()),
+            salt.data(),
+            static_cast<int>(salt.size()),
+            static_cast<int>(iterations),
+            symbols->evp_sha256(),
+            static_cast<int>(destination.size()),
+            destination.data()
+        );
+        if (result == 1) {
+            return destination.size();
+        }
     }
 
-    const auto result = symbols->pkcs5_pbkdf2_hmac(
+#if defined(FRAGSEAL_USE_COMMONCRYPTO)
+    const auto status = CCKeyDerivationPBKDF(
+        kCCPBKDF2,
         reinterpret_cast<const char *>(password.data()),
         static_cast<int>(password.size()),
         salt.data(),
         static_cast<int>(salt.size()),
-        static_cast<int>(iterations),
-        symbols->evp_sha256(),
-        static_cast<int>(destination.size()),
-        destination.data()
+        kCCPRFHmacAlgSHA256,
+        static_cast<unsigned>(iterations),
+        destination.data(),
+        destination.size()
     );
-    return result == 1 ? std::optional<size_t>(destination.size()) : std::optional<size_t>{};
+    return status == kCCSuccess ? std::optional<size_t>(destination.size()) : std::optional<size_t>{};
+#else
+    return {};
+#endif
+#elif defined(FRAGSEAL_USE_COMMONCRYPTO)
+    if (iterations == 0
+        || password.size() > static_cast<std::size_t>(std::numeric_limits<int>::max())
+        || salt.size() > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+        return {};
+    }
+
+    const auto status = CCKeyDerivationPBKDF(
+        kCCPBKDF2,
+        reinterpret_cast<const char *>(password.data()),
+        static_cast<int>(password.size()),
+        salt.data(),
+        static_cast<int>(salt.size()),
+        kCCPRFHmacAlgSHA256,
+        static_cast<unsigned>(iterations),
+        destination.data(),
+        destination.size()
+    );
+    return status == kCCSuccess ? std::optional<size_t>(destination.size()) : std::optional<size_t>{};
 #else
     (void)password;
     (void)salt;

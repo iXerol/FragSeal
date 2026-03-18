@@ -17,17 +17,11 @@ PRODUCT ?= cli
 PLATFORM ?= auto
 RUNTIME ?= auto
 ARCH ?= auto
-DECRYPTER ?= auto
 OPENSSL_LIB ?=
-
-ifneq ($(strip $(DECRYPTER_IMPL)),)
-ifeq ($(strip $(DECRYPTER)),auto)
-DECRYPTER := $(DECRYPTER_IMPL)
-endif
-endif
 
 ifneq ($(strip $(OPENSSL_LIB)),)
 FRAGSEAL_OPENSSL_CRYPTO_LIB := $(OPENSSL_LIB)
+BAZEL_BASE_FLAGS += --repo_env=OPENSSL_LIB=$(OPENSSL_LIB)
 endif
 FRAGSEAL_OPENSSL_CRYPTO_LIB ?=
 export FRAGSEAL_OPENSSL_CRYPTO_LIB
@@ -78,36 +72,24 @@ esac; \
 host_macos_version="$$(sw_vers -productVersion 2>/dev/null || echo 0)"; \
 host_macos_major="$${host_macos_version%%.*}"; \
 product="$(PRODUCT)"; \
-platform="$(PLATFORM)"; \
-runtime="$(RUNTIME)"; \
-arch="$(ARCH)"; \
-decrypter="$(DECRYPTER)"; \
-openssl_lib_override="$(OPENSSL_LIB)"; \
-if [ "$$platform" = "auto" ]; then \
-	platform="$$host_platform"; \
+	platform="$(PLATFORM)"; \
+	runtime="$(RUNTIME)"; \
+	arch="$(ARCH)"; \
+	openssl_lib_override="$(OPENSSL_LIB)"; \
+	if [ "$$platform" = "auto" ]; then \
+		platform="$$host_platform"; \
 fi; \
 case "$$platform" in \
 	macos|linux) ;; \
 	*) echo "Invalid PLATFORM='$$platform' (expected: auto, macos, linux)." >&2; exit 1 ;; \
 esac; \
-if [ "$$platform" != "$$host_platform" ]; then \
-	echo "PLATFORM=$$platform requires a $$platform host or container (current host $$host_os)." >&2; \
-	exit 1; \
-fi; \
-decrypter_flags=""; \
-case "$$decrypter" in \
-	""|auto) decrypter="auto" ;; \
-	commoncrypto) decrypter_flags="--define DECRYPTER_IMPL=commoncrypto" ;; \
-	openssl) decrypter_flags="--define DECRYPTER_IMPL=openssl" ;; \
-	*) echo "Invalid DECRYPTER='$$decrypter' (expected: auto, commoncrypto, openssl)." >&2; exit 1 ;; \
-esac; \
-if [ "$$decrypter" = "commoncrypto" ] && [ "$$platform" != "macos" ]; then \
-	echo "DECRYPTER=commoncrypto is only supported on macOS." >&2; \
-	exit 1; \
-fi; \
-if [ -n "$$openssl_lib_override" ]; then \
-	export FRAGSEAL_OPENSSL_CRYPTO_LIB="$$openssl_lib_override"; \
-fi
+	if [ "$$platform" != "$$host_platform" ]; then \
+		echo "PLATFORM=$$platform requires a $$platform host or container (current host $$host_os)." >&2; \
+		exit 1; \
+	fi; \
+	if [ -n "$$openssl_lib_override" ]; then \
+		export FRAGSEAL_OPENSSL_CRYPTO_LIB="$$openssl_lib_override"; \
+	fi
 endef
 
 define RESOLVE_OPENSSL_RUNTIME
@@ -198,9 +180,9 @@ build:
 			echo "Invalid PRODUCT='$$product' (expected: cli, framework)." >&2; \
 			exit 1 ;; \
 	esac; \
-	echo "Resolved build: PRODUCT=$$product PLATFORM=$$platform RUNTIME=$$runtime ARCH=$$arch DECRYPTER=$$decrypter"; \
+	echo "Resolved build: PRODUCT=$$product PLATFORM=$$platform RUNTIME=$$runtime ARCH=$$arch"; \
 	echo "Building $$bazel_target with BAZEL_CXXOPTS=$$BAZEL_CXXOPTS"; \
-	$(BAZEL) build $$decrypter_flags $(BAZEL_ALL_FLAGS) $$bazel_target; \
+	$(BAZEL) build $(BAZEL_ALL_FLAGS) $$bazel_target; \
 	if [ "$$product" = "cli" ] && [ "$$runtime" = "backdeploy" ]; then \
 		case "$$arch" in \
 			arm64) backdeploy_root="bazel-bin/FragSeal/arm64" ;; \
@@ -211,7 +193,7 @@ build:
 		echo "  $$backdeploy_root/fragseal_backdeploy"; \
 		echo "  $$backdeploy_root/Frameworks/libswiftCompatibilitySpan.dylib"; \
 	fi; \
-	if [ "$$product" = "cli" ] && [ "$$platform" = "macos" ] && [ "$$decrypter" = "openssl" ] && [ -n "$${FRAGSEAL_OPENSSL_CRYPTO_LIB:-}" ]; then \
+	if [ "$$product" = "cli" ] && [ "$$platform" = "macos" ] && [ -n "$${FRAGSEAL_OPENSSL_CRYPTO_LIB:-}" ]; then \
 		if [ "$$arch" = "universal" ]; then \
 			echo "Universal OpenSSL builds still require a target-machine libcrypto slice that matches the selected runtime arch."; \
 		else \
@@ -244,7 +226,7 @@ test: resources
 			exit 1; \
 		fi; \
 		runtime="native"; \
-		bazel_targets="//FragSealCoreTests:FragSealCoreTests_host //FragSealCliTests:FragSealCliFunctionalTest_linux"; \
+		bazel_targets="//FragSealCoreTests:FragSealCoreTests_host //FragSealCoreTests:FragSealCoreTests_runtime_unavailable_host //FragSealCliTests:FragSealCliFunctionalTest_linux"; \
 	else \
 		if [ "$$runtime" = "auto" ]; then \
 			if [ "$$host_macos_major" -ge 26 ]; then runtime="native"; else runtime="backdeploy"; fi; \
@@ -252,7 +234,7 @@ test: resources
 		case "$$runtime" in \
 			native) bazel_targets="//FragSealCoreTests:FragSealCoreTests //FragSealCliTests:FragSealCliFunctionalTest_macos" ;; \
 			backdeploy) \
-				bazel_targets="//FragSealCoreTests:FragSealCoreTests_backdeploy //FragSealCliTests:FragSealCliFunctionalTest_backdeploy"; \
+				bazel_targets="//FragSealCoreTests:FragSealCoreTests_backdeploy //FragSealCoreTests:FragSealCoreTests_runtime_unavailable_backdeploy //FragSealCliTests:FragSealCliFunctionalTest_backdeploy"; \
 				extra_test_flags="--host_macos_minimum_os=$$host_macos_version" ;; \
 			*) echo "Invalid RUNTIME='$$runtime' (expected: auto, native, backdeploy)." >&2; exit 1 ;; \
 		esac; \
@@ -262,9 +244,9 @@ test: resources
 		echo "Using OpenSSL runtime from $$FRAGSEAL_OPENSSL_CRYPTO_LIB"; \
 		test_env_flags="--test_env=FRAGSEAL_OPENSSL_CRYPTO_LIB=$$FRAGSEAL_OPENSSL_CRYPTO_LIB"; \
 	fi; \
-	echo "Resolved test: PLATFORM=$$platform RUNTIME=$$runtime DECRYPTER=$$decrypter"; \
+	echo "Resolved test: PLATFORM=$$platform RUNTIME=$$runtime"; \
 	echo "Testing $$bazel_targets with BAZEL_CXXOPTS=$$BAZEL_CXXOPTS"; \
-	$(BAZEL) test $$decrypter_flags $$test_env_flags $$extra_test_flags $(BAZEL_ALL_FLAGS) $$bazel_targets
+	$(BAZEL) test $$test_env_flags $$extra_test_flags $(BAZEL_ALL_FLAGS) $$bazel_targets
 
 project:
 	$(BAZEL) run //:xcodeproj
@@ -288,18 +270,17 @@ help:
 	@echo "  PLATFORM=auto|macos|linux (default: auto; cross-platform builds are rejected)"
 	@echo "  RUNTIME=auto|native|backdeploy (CLI on macOS only; default: auto)"
 	@echo "  ARCH=auto|arm64|x86_64|universal (CLI on macOS only; default: auto -> universal)"
-	@echo "  DECRYPTER=auto|commoncrypto|openssl (default: auto)"
-	@echo "  OPENSSL_LIB=/absolute/path/to/libcrypto (runtime override for modern crypto or DECRYPTER=openssl)"
+	@echo "  OPENSSL_LIB=/absolute/path/to/libcrypto (build hint + runtime override)"
 	@echo "  BAZEL_ARGS=\"...\"     # extra Bazel flags"
 	@echo
 	@echo "Common examples:"
 	@echo "  make build"
 	@echo "  make build PRODUCT=framework"
 	@echo "  make build PLATFORM=macos RUNTIME=backdeploy"
-	@echo "  make build PLATFORM=linux DECRYPTER=openssl"
+	@echo "  make build PLATFORM=linux"
 	@echo "  make test"
 	@echo "  make test PLATFORM=macos RUNTIME=backdeploy"
-	@echo "  make test DECRYPTER=openssl OPENSSL_LIB=/absolute/path/to/libcrypto.3.dylib"
+	@echo "  make test OPENSSL_LIB=/absolute/path/to/libcrypto.3.dylib"
 	@echo
 	@echo "Invalid combinations fail fast:"
 	@echo "  PRODUCT=framework with RUNTIME or ARCH"

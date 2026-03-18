@@ -198,6 +198,8 @@ public extension ChunkDescriptor {
     func nonceOrIV(for mode: EncryptionMode) throws -> Data {
         guard let encoded = nonceOrIVBase64(for: mode).stringValue else {
             switch mode {
+            case .none:
+                return Data()
             case .legacyAes128Cbc:
                 throw ManifestChunkError.missingIV(Int(index))
             case .aes256Gcm, .chacha20Poly1305:

@@ -15,7 +15,14 @@ const std::size_t kLegacyAes128CbcBlockSize = LegacyAes128CbcCrypter::blockSize;
 
 LegacyAes128CbcCrypter::LegacyAes128CbcCrypter(std::array<uint8_t, blockSize> keyBytes) {
     this->key = keyBytes;
-    backendState = fragseal::crypto::backend::create_state(key);
+#if defined(FRAGSEAL_USE_OPENSSL)
+    opensslState = fragseal::crypto::backend::openssl_backend::create_state(key);
+#endif
+#if defined(FRAGSEAL_USE_COMMONCRYPTO)
+    if (!opensslState) {
+        commoncryptoState = fragseal::crypto::backend::commoncrypto_backend::create_state(key);
+    }
+#endif
 }
 
 LegacyAes128CbcCrypter::LegacyAes128CbcCrypter(ByteSpan keySpan __noescape) {
@@ -24,7 +31,14 @@ LegacyAes128CbcCrypter::LegacyAes128CbcCrypter(ByteSpan keySpan __noescape) {
         std::abort();
     }
     std::copy_n(keySpan.begin(), blockSize, key.begin());
-    backendState = fragseal::crypto::backend::create_state(key);
+#if defined(FRAGSEAL_USE_OPENSSL)
+    opensslState = fragseal::crypto::backend::openssl_backend::create_state(key);
+#endif
+#if defined(FRAGSEAL_USE_COMMONCRYPTO)
+    if (!opensslState) {
+        commoncryptoState = fragseal::crypto::backend::commoncrypto_backend::create_state(key);
+    }
+#endif
 }
 
 OptionalSize
@@ -46,9 +60,17 @@ LegacyAes128CbcCrypter::decrypt(ByteSpan iv __noescape,
         std::copy_n(ciphertext.begin(), bufferCount, destination.begin());
     }
 
-    if (!backendState) {
-        return {};
+#if defined(FRAGSEAL_USE_OPENSSL)
+    if (opensslState) {
+        return fragseal::crypto::backend::openssl_backend::decrypt(*opensslState, iv, ciphertext, destination);
     }
-
-    return fragseal::crypto::backend::decrypt(*backendState, iv, ciphertext, destination);
+#endif
+#if defined(FRAGSEAL_USE_COMMONCRYPTO)
+    if (commoncryptoState) {
+        return fragseal::crypto::backend::commoncrypto_backend::decrypt(
+            *commoncryptoState, iv, ciphertext, destination
+        );
+    }
+#endif
+    return {};
 }

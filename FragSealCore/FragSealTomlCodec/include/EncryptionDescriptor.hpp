@@ -9,6 +9,7 @@
 #include <utility>
 
 enum class EncryptionMode {
+    none,
     aes256Gcm,
     chacha20Poly1305,
     legacyAes128Cbc,
@@ -60,6 +61,8 @@ inline bool operator==(const EncryptionDescriptor &lhs, const EncryptionDescript
 
 inline constexpr std::string_view rawValue(EncryptionMode mode) {
     switch (mode) {
+    case EncryptionMode::none:
+        return "none";
     case EncryptionMode::aes256Gcm:
         return "aes-256-gcm";
     case EncryptionMode::chacha20Poly1305:
@@ -74,6 +77,9 @@ inline std::string encryptionModeRawValueString(EncryptionMode mode) {
 }
 
 inline std::optional<EncryptionMode> encryptionModeFromRawValue(std::string_view value) {
+    if (value == "none") {
+        return EncryptionMode::none;
+    }
     if (value == "aes-256-gcm") {
         return EncryptionMode::aes256Gcm;
     }
@@ -88,6 +94,8 @@ inline std::optional<EncryptionMode> encryptionModeFromRawValue(std::string_view
 
 inline constexpr std::int64_t encryptionModeKeySize(EncryptionMode mode) {
     switch (mode) {
+    case EncryptionMode::none:
+        return 0;
     case EncryptionMode::legacyAes128Cbc:
         return 16;
     case EncryptionMode::aes256Gcm:
@@ -98,6 +106,8 @@ inline constexpr std::int64_t encryptionModeKeySize(EncryptionMode mode) {
 
 inline constexpr std::int64_t encryptionModeNonceSize(EncryptionMode mode) {
     switch (mode) {
+    case EncryptionMode::none:
+        return 0;
     case EncryptionMode::legacyAes128Cbc:
         return 16;
     case EncryptionMode::aes256Gcm:
@@ -107,7 +117,9 @@ inline constexpr std::int64_t encryptionModeNonceSize(EncryptionMode mode) {
 }
 
 inline constexpr bool encryptionModeIsWritable(EncryptionMode mode) {
-    return mode != EncryptionMode::legacyAes128Cbc;
+    return mode == EncryptionMode::none
+        || mode == EncryptionMode::aes256Gcm
+        || mode == EncryptionMode::chacha20Poly1305;
 }
 
 inline constexpr std::string_view rawValue(KeyDerivationAlgorithm algorithm) {

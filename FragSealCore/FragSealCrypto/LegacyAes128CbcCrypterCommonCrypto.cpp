@@ -7,7 +7,7 @@
 
 #if defined(FRAGSEAL_USE_COMMONCRYPTO)
 
-namespace fragseal::crypto::backend {
+namespace fragseal::crypto::backend::commoncrypto_backend {
 struct State {
     std::array<uint8_t, LegacyAes128CbcCrypter::blockSize> key;
 };
@@ -40,6 +40,6 @@ OptionalSize decrypt(
 
     return bytesDecrypted;
 }
-} // namespace fragseal::crypto::backend
+} // namespace fragseal::crypto::backend::commoncrypto_backend
 
 #endif // if defined(FRAGSEAL_USE_COMMONCRYPTO)

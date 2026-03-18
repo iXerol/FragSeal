@@ -161,8 +161,15 @@ bool validateChunk(const ChunkDescriptor &chunk,
         || !requireString(chunk.objectKey, "chunks[index].object_key", errorOut)
         || !validateNonNegative(chunk.offset, "chunks[index].offset", errorOut)
         || !validateNonNegative(chunk.plaintextSize, "chunks[index].plaintext_size", errorOut)
-        || !validateNonNegative(chunk.ciphertextSize, "chunks[index].ciphertext_size", errorOut)
-        || !requireString(chunk.sha256, "chunks[index].sha256", errorOut)) {
+        || !validateNonNegative(chunk.ciphertextSize, "chunks[index].ciphertext_size", errorOut)) {
+        return false;
+    }
+
+    if (mode == EncryptionMode::none) {
+        return true;
+    }
+
+    if (!requireString(chunk.sha256, "chunks[index].sha256", errorOut)) {
         return false;
     }
 
@@ -186,7 +193,6 @@ bool validateManifest(const BackupManifest &manifest, std::string &errorOut) {
         || !requireString(manifest.backup.createdAt, "backup.created_at", errorOut)
         || !validatePositive(manifest.backup.chunkSize, "backup.chunk_size", errorOut)
         || !validateNonNegative(manifest.backup.originalSize, "backup.original_size", errorOut)
-        || !requireString(manifest.backup.originalSha256, "backup.original_sha256", errorOut)
         || manifest.storage.prefix.empty()) {
         if (errorOut.empty()) {
             errorOut = "storage.prefix is missing";
@@ -194,14 +200,21 @@ bool validateManifest(const BackupManifest &manifest, std::string &errorOut) {
         return false;
     }
 
-    if (manifest.encryption.iterations == 0) {
-        errorOut = "encryption.iterations must be positive";
+    if (manifest.encryption.mode != EncryptionMode::none
+        && !requireString(manifest.backup.originalSha256, "backup.original_sha256", errorOut)) {
         return false;
     }
 
-    if (!requireString(manifest.encryption.salt, "encryption.salt", errorOut)
-        || !requireString(manifest.encryption.wrappedKey, "encryption.wrapped_key", errorOut)) {
-        return false;
+    if (manifest.encryption.mode != EncryptionMode::none) {
+        if (manifest.encryption.iterations == 0) {
+            errorOut = "encryption.iterations must be positive";
+            return false;
+        }
+
+        if (!requireString(manifest.encryption.salt, "encryption.salt", errorOut)
+            || !requireString(manifest.encryption.wrappedKey, "encryption.wrapped_key", errorOut)) {
+            return false;
+        }
     }
 
     for (const auto &chunk : manifest.chunks) {
@@ -216,6 +229,7 @@ bool validateManifest(const BackupManifest &manifest, std::string &errorOut) {
 bool parseBackup(const toml::table &table,
                  BackupDescriptor &backup,
                  std::string &errorOut) {
+    OptionalString originalSha256;
     return readRequiredString(table, "id", "backup.id", backup.id, errorOut)
         && readRequiredString(table, "source_name", "backup.source_name", backup.sourceName, errorOut)
         && readRequiredString(table, "created_at", "backup.created_at", backup.createdAt, errorOut)
@@ -223,7 +237,8 @@ bool parseBackup(const toml::table &table,
         && validatePositive(backup.chunkSize, "backup.chunk_size", errorOut)
         && readRequiredInt64(table, "original_size", "backup.original_size", backup.originalSize, errorOut)
         && validateNonNegative(backup.originalSize, "backup.original_size", errorOut)
-        && readRequiredString(table, "original_sha256", "backup.original_sha256", backup.originalSha256, errorOut);
+        && readOptionalString(table, "original_sha256", originalSha256, errorOut)
+        && (backup.originalSha256 = originalSha256.value_or(""), true);
 }
 
 bool parseStorage(const toml::table &table,
@@ -251,6 +266,15 @@ bool parseStorage(const toml::table &table,
 bool parseEncryption(const toml::table &table,
                      EncryptionDescriptor &encryption,
                      std::string &errorOut) {
+    if (table.empty()) {
+        encryption.mode = EncryptionMode::none;
+        encryption.kdf = KeyDerivationAlgorithm::pbkdf2Sha256;
+        encryption.salt.clear();
+        encryption.iterations = 1;
+        encryption.wrappedKey.clear();
+        return true;
+    }
+
     std::string modeValue;
     if (!readRequiredString(table, "mode", "encryption.mode", modeValue, errorOut)) {
         return false;
@@ -259,6 +283,36 @@ bool parseEncryption(const toml::table &table,
     if (!mode.has_value()) {
         errorOut = "encryption.mode is invalid";
         return false;
+    }
+
+    encryption.mode = *mode;
+    if (*mode == EncryptionMode::none) {
+        OptionalString kdfValue;
+        if (!readOptionalString(table, "kdf", kdfValue, errorOut)) {
+            return false;
+        }
+        if (kdfValue.has_value() && !kdfValue->empty()) {
+            const auto parsed = keyDerivationAlgorithmFromRawValue(*kdfValue);
+            if (!parsed.has_value()) {
+                errorOut = "encryption.kdf is invalid";
+                return false;
+            }
+            encryption.kdf = *parsed;
+        } else {
+            encryption.kdf = KeyDerivationAlgorithm::pbkdf2Sha256;
+        }
+
+        OptionalString maybeSalt;
+        OptionalString maybeWrappedKey;
+        std::uint32_t maybeIterations = 1;
+        const auto *iterationsNode = table.get("iterations");
+        const bool hasIterations = iterationsNode != nullptr;
+        return readOptionalString(table, "salt", maybeSalt, errorOut)
+            && readOptionalString(table, "wrapped_key", maybeWrappedKey, errorOut)
+            && (!hasIterations || readRequiredUInt32(table, "iterations", "encryption.iterations", maybeIterations, errorOut))
+            && (encryption.salt = maybeSalt.value_or(""), true)
+            && (encryption.wrappedKey = maybeWrappedKey.value_or(""), true)
+            && (encryption.iterations = maybeIterations, true);
     }
 
     std::string kdfValue;
@@ -271,7 +325,6 @@ bool parseEncryption(const toml::table &table,
         return false;
     }
 
-    encryption.mode = *mode;
     encryption.kdf = *kdf;
     return readRequiredString(table, "salt", "encryption.salt", encryption.salt, errorOut)
         && readRequiredUInt32(table, "iterations", "encryption.iterations", encryption.iterations, errorOut)
@@ -282,15 +335,22 @@ bool parseChunk(const toml::table &table,
                 EncryptionMode mode,
                 ChunkDescriptor &chunk,
                 std::string &errorOut) {
+    OptionalString chunkSha256;
     if (!readRequiredInt64(table, "index", "chunks[index].index", chunk.index, errorOut)
         || !readRequiredString(table, "object_key", "chunks[index].object_key", chunk.objectKey, errorOut)
         || !readRequiredInt64(table, "offset", "chunks[index].offset", chunk.offset, errorOut)
         || !readRequiredInt64(table, "plaintext_size", "chunks[index].plaintext_size", chunk.plaintextSize, errorOut)
         || !readRequiredInt64(table, "ciphertext_size", "chunks[index].ciphertext_size", chunk.ciphertextSize, errorOut)
-        || !readRequiredString(table, "sha256", "chunks[index].sha256", chunk.sha256, errorOut)
+        || (mode == EncryptionMode::none
+                ? !readOptionalString(table, "sha256", chunkSha256, errorOut)
+                : !readRequiredString(table, "sha256", "chunks[index].sha256", chunk.sha256, errorOut))
         || !readOptionalString(table, "nonce", chunk.nonce, errorOut)
         || !readOptionalString(table, "iv", chunk.iv, errorOut)) {
         return false;
+    }
+
+    if (mode == EncryptionMode::none) {
+        chunk.sha256 = chunkSha256.value_or("");
     }
 
     return validateChunk(chunk, mode, errorOut);
@@ -322,7 +382,9 @@ TomlManifestEncodingResult TomlManifestCodecBridge::encode(const BackupManifest 
         backup.insert_or_assign("created_at", manifest.backup.createdAt);
         backup.insert_or_assign("chunk_size", manifest.backup.chunkSize);
         backup.insert_or_assign("original_size", manifest.backup.originalSize);
-        backup.insert_or_assign("original_sha256", manifest.backup.originalSha256);
+        if (!manifest.backup.originalSha256.empty()) {
+            backup.insert_or_assign("original_sha256", manifest.backup.originalSha256);
+        }
         document.insert_or_assign("backup", std::move(backup));
 
         toml::table storage;
@@ -335,11 +397,13 @@ TomlManifestEncodingResult TomlManifestCodecBridge::encode(const BackupManifest 
         document.insert_or_assign("storage", std::move(storage));
 
         toml::table encryption;
-        encryption.insert_or_assign("mode", rawValue(manifest.encryption.mode));
-        encryption.insert_or_assign("kdf", rawValue(manifest.encryption.kdf));
-        encryption.insert_or_assign("salt", manifest.encryption.salt);
-        encryption.insert_or_assign("iterations", static_cast<std::int64_t>(manifest.encryption.iterations));
-        encryption.insert_or_assign("wrapped_key", manifest.encryption.wrappedKey);
+        if (manifest.encryption.mode != EncryptionMode::none) {
+            encryption.insert_or_assign("mode", rawValue(manifest.encryption.mode));
+            encryption.insert_or_assign("kdf", rawValue(manifest.encryption.kdf));
+            encryption.insert_or_assign("salt", manifest.encryption.salt);
+            encryption.insert_or_assign("iterations", static_cast<std::int64_t>(manifest.encryption.iterations));
+            encryption.insert_or_assign("wrapped_key", manifest.encryption.wrappedKey);
+        }
         document.insert_or_assign("encryption", std::move(encryption));
 
         toml::array chunks;
@@ -351,7 +415,9 @@ TomlManifestEncodingResult TomlManifestCodecBridge::encode(const BackupManifest 
             chunkTable.insert_or_assign("offset", chunk.offset);
             chunkTable.insert_or_assign("plaintext_size", chunk.plaintextSize);
             chunkTable.insert_or_assign("ciphertext_size", chunk.ciphertextSize);
-            chunkTable.insert_or_assign("sha256", chunk.sha256);
+            if (!chunk.sha256.empty()) {
+                chunkTable.insert_or_assign("sha256", chunk.sha256);
+            }
             renderOptionalString(chunkTable, "nonce", chunk.nonce);
             renderOptionalString(chunkTable, "iv", chunk.iv);
             chunks.push_back(std::move(chunkTable));

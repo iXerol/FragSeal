@@ -9,9 +9,12 @@ import FragSealFileSystem
 
 actor ChunkDownloader {
     private let storage: any ObjectStorage
-    private let crypter: ChunkCrypter
-    init(storage: any ObjectStorage, crypter: ChunkCrypter) {
+    private let mode: EncryptionMode
+    private let crypter: ChunkCrypter?
+
+    init(storage: any ObjectStorage, mode: EncryptionMode, crypter: ChunkCrypter? = nil) {
         self.storage = storage
+        self.mode = mode
         self.crypter = crypter
     }
 
@@ -41,21 +44,32 @@ actor ChunkDownloader {
 
         func makeTask(index: Int) -> Task<FilePath, Error> {
             let chunk = chunks[index]
-            return Task { [storage, crypter] in
+            return Task { [storage, mode, crypter] in
                 let ciphertext = try await retry("download \(chunk.objectKeyValue)") {
                     try await storage.getObject(key: chunk.objectKeyValue)
                 } when: { error, attempt in
                         storage.retryDirective(for: error, attempt: attempt)
                     }
-                let expectedHash = try ChunkCrypter.sha256Hex(of: ciphertext)
-                guard expectedHash == chunk.sha256Value else {
-                    throw ChunkDownloaderError.hashMismatch(index)
+
+                if mode != .none {
+                    let expectedHash = try ChunkCrypter.sha256Hex(of: ciphertext)
+                    guard expectedHash == chunk.sha256Value else {
+                        throw ChunkDownloaderError.hashMismatch(index)
+                    }
                 }
 
-                let plaintext = try await crypter.decrypt(
-                    ciphertext: ciphertext,
-                    nonceOrIV: try chunk.nonceOrIV(for: crypter.mode)
-                )
+                let plaintext: Data
+                if mode == .none {
+                    plaintext = ciphertext
+                } else {
+                    guard let crypter else {
+                        throw ChunkCrypter.Error.unsupportedMode(mode)
+                    }
+                    plaintext = try await crypter.decrypt(
+                        ciphertext: ciphertext,
+                        nonceOrIV: try chunk.nonceOrIV(for: mode)
+                    )
+                }
                 let outputPath = sessionDirectory.appending("\(chunk.index).bin")
                 let writer = try FileWriter(path: outputPath, mode: .truncate)
                 try writer.append(plaintext)
