@@ -5,12 +5,16 @@
 
 private import FragSealCrypto
 import Foundation
+#if canImport(CryptoKit)
+import CryptoKit
+#endif
 
 struct ChunkCrypter: Sendable {
     enum Error: Swift.Error {
         case unsupportedMode(EncryptionMode)
         case invalidKeyLength(EncryptionMode)
         case invalidNonceLength(EncryptionMode)
+        case cryptoUnavailable(EncryptionMode)
         case encryptFailed(EncryptionMode)
         case decryptFailed(EncryptionMode)
     }
@@ -32,6 +36,8 @@ struct ChunkCrypter: Sendable {
         }
 
         switch mode {
+        case .none:
+            return plaintext
         case .aes256Gcm:
             let crypter = Aes256GcmCrypter(keySpan: key.span)
             do {
@@ -59,6 +65,8 @@ struct ChunkCrypter: Sendable {
         }
 
         switch mode {
+        case .none:
+            return ciphertext
         case .aes256Gcm:
             let crypter = Aes256GcmCrypter(keySpan: key.span)
             do {
@@ -86,11 +94,17 @@ struct ChunkCrypter: Sendable {
     }
 
     static func randomKey(for mode: EncryptionMode) throws -> Data {
-        try randomBytes(count: mode.keySize)
+        guard mode != .none else {
+            return Data()
+        }
+        return try randomBytes(count: mode.keySize)
     }
 
     static func randomNonceOrIV(for mode: EncryptionMode) throws -> Data {
-        try randomBytes(count: mode.nonceSize)
+        guard mode != .none else {
+            return Data()
+        }
+        return try randomBytes(count: mode.nonceSize)
     }
 
     static func randomBytes(count: Int) throws -> Data {
@@ -104,9 +118,20 @@ struct ChunkCrypter: Sendable {
     static func wrapKey(_ dataKey: Data,
                         with wrappingKey: Data) async throws -> Data {
         let nonce = try randomBytes(count: Aes256GcmCrypter.nonceSize)
-        let crypter = Aes256GcmCrypter(keySpan: wrappingKey.span)
-        let ciphertext = try await crypter.encrypt(nonceSpan: nonce.span, dataSpan: dataKey.span)
-        return nonce + ciphertext
+        if CryptoSupport.aes256Gcm {
+            let crypter = Aes256GcmCrypter(keySpan: wrappingKey.span)
+            let ciphertext = try await crypter.encrypt(nonceSpan: nonce.span, dataSpan: dataKey.span)
+            return nonce + ciphertext
+        }
+
+#if canImport(CryptoKit)
+        let symmetricKey = SymmetricKey(data: wrappingKey)
+        let cryptoNonce = try AES.GCM.Nonce(data: nonce)
+        let sealed = try AES.GCM.seal(dataKey, using: symmetricKey, nonce: cryptoNonce)
+        return nonce + sealed.ciphertext + sealed.tag
+#else
+        throw Error.cryptoUnavailable(.aes256Gcm)
+#endif
     }
 
     static func unwrapKey(_ wrappedKey: Data,
@@ -117,12 +142,31 @@ struct ChunkCrypter: Sendable {
         }
         let nonce = wrappedKey.prefix(nonceSize)
         let ciphertext = wrappedKey.dropFirst(nonceSize)
-        let crypter = Aes256GcmCrypter(keySpan: wrappingKey.span)
+        if CryptoSupport.aes256Gcm {
+            let crypter = Aes256GcmCrypter(keySpan: wrappingKey.span)
+            do {
+                return try await crypter.decrypt(nonceSpan: nonce.span, dataSpan: ciphertext.span)
+            } catch {
+                throw Error.decryptFailed(.aes256Gcm)
+            }
+        }
+
+#if canImport(CryptoKit)
+        let ciphertextData = Data(ciphertext.dropLast(Aes256GcmCrypter.tagSize))
+        let tag = Data(ciphertext.suffix(Aes256GcmCrypter.tagSize))
         do {
-            return try await crypter.decrypt(nonceSpan: nonce.span, dataSpan: ciphertext.span)
+            let sealedBox = try AES.GCM.SealedBox(
+                nonce: .init(data: nonce),
+                ciphertext: ciphertextData,
+                tag: tag
+            )
+            return try AES.GCM.open(sealedBox, using: SymmetricKey(data: wrappingKey))
         } catch {
             throw Error.decryptFailed(.aes256Gcm)
         }
+#else
+        throw Error.cryptoUnavailable(.aes256Gcm)
+#endif
     }
 
     static func deriveWrappingKey(passphrase: String,
@@ -132,5 +176,35 @@ struct ChunkCrypter: Sendable {
                                           salt: salt,
                                           iterations: iterations,
                                           keySize: PBKDF2KeyDeriver.defaultKeySize)
+    }
+
+    static func supportsEncryption(_ mode: EncryptionMode) -> Bool {
+        switch mode {
+        case .none:
+            return true
+        case .aes256Gcm:
+            return CryptoSupport.aes256Gcm
+        case .chacha20Poly1305:
+            return CryptoSupport.chacha20Poly1305
+        case .legacyAes128Cbc:
+            return false
+        @unknown default:
+            return false
+        }
+    }
+
+    static func supportsDecryption(_ mode: EncryptionMode) -> Bool {
+        switch mode {
+        case .none:
+            return true
+        case .aes256Gcm:
+            return CryptoSupport.aes256Gcm
+        case .chacha20Poly1305:
+            return CryptoSupport.chacha20Poly1305
+        case .legacyAes128Cbc:
+            return CryptoSupport.legacyAes128Cbc
+        @unknown default:
+            return false
+        }
     }
 }

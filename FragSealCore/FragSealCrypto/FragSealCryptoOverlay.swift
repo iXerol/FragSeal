@@ -194,3 +194,17 @@ public extension SecureRandom {
         return data
     }
 }
+
+public enum CryptoSupport {
+    public static var aes256Gcm: Bool {
+        CryptoCapabilities.supportsAes256Gcm()
+    }
+
+    public static var chacha20Poly1305: Bool {
+        CryptoCapabilities.supportsChaCha20Poly1305()
+    }
+
+    public static var legacyAes128Cbc: Bool {
+        CryptoCapabilities.supportsLegacyAes128Cbc()
+    }
+}

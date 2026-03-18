@@ -20,7 +20,7 @@ env:
 
 jobs:
   macos-tests:
-    name: macOS tests (${{ matrix.runtime }}, ${{ matrix.decrypter }})
+    name: macOS tests (${{ matrix.runtime }}, openssl-${{ matrix.openssl_mode }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -28,16 +28,16 @@ jobs:
         include:
           - runner: macos-26
             runtime: native
-            decrypter: commoncrypto
+            openssl_mode: auto
           - runner: macos-26
             runtime: native
-            decrypter: openssl
+            openssl_mode: disabled
           - runner: macos-15
             runtime: backdeploy
-            decrypter: commoncrypto
+            openssl_mode: auto
           - runner: macos-15
             runtime: backdeploy
-            decrypter: openssl
+            openssl_mode: disabled
     steps:
       - uses: actions/checkout@v6
 
@@ -63,12 +63,15 @@ jobs:
 
       - name: Run tests
         run: |
+          EXTRA_BAZEL_ARGS=""
+          if [ "${{ matrix.openssl_mode }}" = "disabled" ]; then
+            EXTRA_BAZEL_ARGS="--repo_env=FRAGSEAL_FORCE_NO_OPENSSL=1"
+          fi
           OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
           make test \
             RUNTIME=${{ matrix.runtime }} \
-            DECRYPTER=${{ matrix.decrypter }} \
             OPENSSL_LIB="$OPENSSL_LIB" \
-            BAZEL_ARGS="${BAZEL_CI_ARGS} --config=macos"
+            BAZEL_ARGS="${BAZEL_CI_ARGS} --config=macos ${EXTRA_BAZEL_ARGS}"
 
   macos-builds:
     name: macOS build (${{ matrix.name }})
@@ -78,9 +81,9 @@ jobs:
       matrix:
         include:
           - name: cli-backdeploy
-            make_args: PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy DECRYPTER=openssl
+            make_args: PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy
           - name: cli-native
-            make_args: PRODUCT=cli PLATFORM=macos RUNTIME=native DECRYPTER=openssl
+            make_args: PRODUCT=cli PLATFORM=macos RUNTIME=native
     steps:
       - uses: actions/checkout@v6
 
@@ -113,7 +116,7 @@ jobs:
             BAZEL_ARGS="${BAZEL_CI_ARGS} --config=macos"
 
   linux-tests:
-    name: Linux tests (openssl, ${{ matrix.name }})
+    name: Linux tests (${{ matrix.name }}, openssl-${{ matrix.openssl_mode }})
     runs-on: ${{ matrix.runner }}
     env:
       CC: clang
@@ -125,8 +128,13 @@ jobs:
         include:
           - name: x86_64
             runner: ubuntu-latest
+            openssl_mode: auto
+          - name: x86_64
+            runner: ubuntu-latest
+            openssl_mode: disabled
           - name: arm64
             runner: ubuntu-24.04-arm
+            openssl_mode: auto
     steps:
       - uses: actions/checkout@v6
 
@@ -198,6 +206,10 @@ jobs:
 
       - name: Run tests
         run: |
+          EXTRA_BAZEL_ARGS=""
+          if [ "${{ matrix.openssl_mode }}" = "disabled" ]; then
+            EXTRA_BAZEL_ARGS="--repo_env=FRAGSEAL_FORCE_NO_OPENSSL=1"
+          fi
           unset SWIFTLY_HOME_DIR
           unset SWIFTLY_BIN_DIR
           unset CPLUS_INCLUDE_PATH
@@ -205,8 +217,7 @@ jobs:
           unset CPATH
           make test \
             PLATFORM=linux \
-            DECRYPTER=openssl \
-            BAZEL_ARGS="${BAZEL_CI_ARGS}"
+            BAZEL_ARGS="${BAZEL_CI_ARGS} ${EXTRA_BAZEL_ARGS}"
 
   linux-builds:
     name: Linux build (${{ matrix.name }}, ${{ matrix.arch }})
@@ -222,11 +233,11 @@ jobs:
           - name: cli
             arch: x86_64
             runner: ubuntu-latest
-            make_args: PRODUCT=cli PLATFORM=linux DECRYPTER=openssl
+            make_args: PRODUCT=cli PLATFORM=linux
           - name: cli
             arch: arm64
             runner: ubuntu-24.04-arm
-            make_args: PRODUCT=cli PLATFORM=linux DECRYPTER=openssl
+            make_args: PRODUCT=cli PLATFORM=linux
     steps:
       - uses: actions/checkout@v6
 

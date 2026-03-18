@@ -13,7 +13,7 @@
 
 #if defined(FRAGSEAL_USE_OPENSSL)
 
-namespace fragseal::crypto::backend {
+namespace fragseal::crypto::backend::openssl_backend {
 
 struct State {
     const fragseal::crypto::openssl_runtime::Symbols *symbols = nullptr;
@@ -102,6 +102,6 @@ OptionalSize decrypt(
     return static_cast<size_t>(outLen1 + outLen2);
 }
 
-} // namespace fragseal::crypto::backend
+} // namespace fragseal::crypto::backend::openssl_backend
 
 #endif

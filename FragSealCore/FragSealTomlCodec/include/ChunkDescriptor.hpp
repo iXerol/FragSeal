@@ -41,6 +41,8 @@ struct SWIFT_UNCHECKED_SENDABLE ChunkDescriptor {
 
     OptionalString nonceOrIVBase64(EncryptionMode mode) const SWIFT_NAME(nonceOrIVBase64(for:)) {
         switch (mode) {
+        case EncryptionMode::none:
+            return std::nullopt;
         case EncryptionMode::legacyAes128Cbc:
             return iv;
         case EncryptionMode::aes256Gcm:

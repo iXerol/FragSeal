@@ -29,6 +29,8 @@ extension FilePath: @retroactive ExpressibleByArgument {
 extension EncryptionMode: @retroactive ExpressibleByArgument {
     public init?(argument: String) {
         switch argument {
+        case "none":
+            self = .none
         case "aes-256-gcm":
             self = .aes256Gcm
         case "chacha20-poly1305":
