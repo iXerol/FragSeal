@@ -23,7 +23,7 @@ enum PassphraseReader {
             return environmentPassphrase
         }
 
-        guard isatty(STDIN_FILENO) == 1 else {
+        guard isInteractiveStdin() else {
             throw Error.missingPassphrase
         }
 
@@ -42,5 +42,9 @@ enum PassphraseReader {
         }
 
         return passphrase
+    }
+
+    static func isInteractiveStdin() -> Bool {
+        isatty(STDIN_FILENO) == 1
     }
 }

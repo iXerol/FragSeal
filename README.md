@@ -68,7 +68,7 @@ Common commands:
 make build
 make build PRODUCT=framework
 make build PLATFORM=macos RUNTIME=backdeploy
-make build PLATFORM=linux DECRYPTER=openssl
+make build PLATFORM=linux
 make test
 make project
 ```
@@ -88,9 +88,11 @@ bazel build //FragSealCore:FragSealCore
 
 ## Runtime requirements
 
-- OpenSSL is required for modern crypto modes and PBKDF2 key derivation.
-- On Apple platforms, `CommonCrypto` is retained only for legacy
-  `aes-128-cbc` restore compatibility.
+- OpenSSL is optional. When available, FragSeal enables modern crypto modes
+  (`aes-256-gcm`, `chacha20-poly1305`).
+- On Apple platforms, `CommonCrypto` is always used for
+  `legacy-aes-128-cbc` restore compatibility.
+- `none` mode requires no crypto runtime dependencies.
 - Linux builds also require `libxml2` headers for the AWS/Smithy XML stack.
 - For S3 uploads/downloads, standard AWS credential resolution is used.
 - For non-interactive runs, set `FRAGSEAL_PASSPHRASE`.
@@ -101,10 +103,10 @@ Linux packages:
 sudo apt-get install -y libssl-dev libxml2-dev pkg-config clang lldb lld
 ```
 
-If the OpenSSL runtime library is in a non-standard location, provide:
+If OpenSSL is present but the runtime library is in a non-standard location, provide:
 
 ```sh
-OPENSSL_LIB=/absolute/path/to/libcrypto make test DECRYPTER=openssl
+OPENSSL_LIB=/absolute/path/to/libcrypto make test
 ```
 
 ## Usage
@@ -149,6 +151,9 @@ Passphrase input:
 
 - Interactive TTY: prompt securely
 - Non-interactive: `FRAGSEAL_PASSPHRASE=...`
+- `none` mode: no passphrase required
+- When `--algorithm` is omitted, FragSeal prompts on interactive terminals;
+  non-interactive runs should pass `--algorithm` explicitly.
 
 ## Manifest format
 
@@ -173,11 +178,7 @@ region = "us-east-1"
 prefix = "backups/<backup-id>"
 
 [encryption]
-mode = "aes-256-gcm"
-kdf = "pbkdf2-sha256"
-salt = "base64"
-iterations = 600000
-wrapped_key = "base64"
+# encrypted backups include mode/kdf/salt/iterations/wrapped_key
 
 [[chunks]]
 index = 0
@@ -191,7 +192,8 @@ nonce = "base64"
 
 Supported encryption modes:
 
-- `aes-256-gcm` (default for new uploads)
+- `none` (plaintext chunks, no crypto dependency)
+- `aes-256-gcm`
 - `chacha20-poly1305`
 - `legacy-aes-128-cbc` (read-only restore compatibility)
 

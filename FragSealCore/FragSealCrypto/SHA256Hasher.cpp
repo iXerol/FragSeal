@@ -19,11 +19,28 @@ SHA256Hasher::hash(ByteSpan data __noescape,
     }
 
     const auto *symbols = fragseal::crypto::openssl_runtime::load_symbols();
-    if (symbols == nullptr) {
+    if (symbols != nullptr &&
+        symbols->sha256(data.data(), static_cast<unsigned long>(data.size()), destination.data()) != nullptr) {
+        return digestSize;
+    }
+
+#if defined(FRAGSEAL_USE_COMMONCRYPTO)
+    if (data.size() > static_cast<std::size_t>(std::numeric_limits<CC_LONG>::max())) {
+        return {};
+    }
+    return CC_SHA256(data.data(), static_cast<CC_LONG>(data.size()), destination.data()) != nullptr
+        ? std::optional<size_t>(digestSize)
+        : std::optional<size_t>{};
+#else
+    return {};
+#endif
+#elif defined(FRAGSEAL_USE_COMMONCRYPTO)
+    if (destination.size() < digestSize ||
+        data.size() > static_cast<std::size_t>(std::numeric_limits<CC_LONG>::max())) {
         return {};
     }
 
-    return symbols->sha256(data.data(), static_cast<unsigned long>(data.size()), destination.data()) != nullptr
+    return CC_SHA256(data.data(), static_cast<CC_LONG>(data.size()), destination.data()) != nullptr
         ? std::optional<size_t>(digestSize)
         : std::optional<size_t>{};
 #else

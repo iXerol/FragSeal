@@ -31,7 +31,7 @@ jobs:
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
-            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=native ARCH=arm64 DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=native ARCH=arm64 BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
             package_command: |
               mkdir -p dist/fragseal-macos-26-arm64
               cp bazel-bin/FragSeal/fragseal_arm64 dist/fragseal-macos-26-arm64/fragseal
@@ -43,7 +43,7 @@ jobs:
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
-            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=native ARCH=x86_64 DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=native ARCH=x86_64 BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
             package_command: |
               mkdir -p dist/fragseal-macos-26-x86_64
               cp bazel-bin/FragSeal/fragseal_x86_64 dist/fragseal-macos-26-x86_64/fragseal
@@ -55,7 +55,7 @@ jobs:
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
-            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=native DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=native BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
             package_command: |
               mkdir -p dist/fragseal-macos-26-universal
               cp bazel-bin/FragSeal/universal_fragseal dist/fragseal-macos-26-universal/fragseal
@@ -68,7 +68,7 @@ jobs:
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
-            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy ARCH=arm64 DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy ARCH=arm64 BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
             package_command: |
               mkdir -p dist/fragseal-macos-14-arm64/Frameworks
               cp bazel-bin/FragSeal/arm64/fragseal_backdeploy dist/fragseal-macos-14-arm64/fragseal
@@ -81,7 +81,7 @@ jobs:
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
-            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy ARCH=x86_64 DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy ARCH=x86_64 BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
             package_command: |
               mkdir -p dist/fragseal-macos-14-x86_64/Frameworks
               cp bazel-bin/FragSeal/x86_64/fragseal_backdeploy dist/fragseal-macos-14-x86_64/fragseal
@@ -94,7 +94,7 @@ jobs:
             setup_xcode: true
             setup_swift: false
             install_command: brew install openssl@3
-            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
+            build_command: make build PRODUCT=cli PLATFORM=macos RUNTIME=backdeploy BAZEL_ARGS="--config=ci --config=macos --config=release" OPENSSL_LIB="$(brew --prefix openssl@3)/lib/libcrypto.3.dylib"
             package_command: |
               mkdir -p dist/fragseal-macos-14-universal/Frameworks
               cp bazel-bin/FragSeal/fragseal_backdeploy dist/fragseal-macos-14-universal/fragseal
@@ -110,7 +110,7 @@ jobs:
             install_command: |
               sudo apt-get update
               sudo apt-get install -y libssl-dev libxml2-dev pkg-config clang lldb lld
-            build_command: make build PRODUCT=cli PLATFORM=linux DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=release"
+            build_command: make build PRODUCT=cli PLATFORM=linux BAZEL_ARGS="--config=ci --config=release"
             package_command: |
               mkdir -p dist/fragseal-linux-x86_64
               cp bazel-bin/FragSeal/fragseal dist/fragseal-linux-x86_64/fragseal
@@ -124,7 +124,7 @@ jobs:
             install_command: |
               sudo apt-get update
               sudo apt-get install -y libssl-dev libxml2-dev pkg-config clang lldb lld
-            build_command: make build PRODUCT=cli PLATFORM=linux DECRYPTER=openssl BAZEL_ARGS="--config=ci --config=release"
+            build_command: make build PRODUCT=cli PLATFORM=linux BAZEL_ARGS="--config=ci --config=release"
             package_command: |
               mkdir -p dist/fragseal-linux-arm64
               cp bazel-bin/FragSeal/fragseal dist/fragseal-linux-arm64/fragseal

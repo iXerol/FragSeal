@@ -12,6 +12,7 @@ import Testing
 struct CryptoTests {
     @Test
     func legacyManifestCanBeRestored() async throws {
+        guard ChunkCrypter.supportsDecryption(.legacyAes128Cbc) else { return }
         let plaintext = try Data(contentsOf: TestResources.legacyPlaintextURL)
         let storageRoot = TestResources.legacyPlaintextURL.deletingLastPathComponent()
         let salt = Data(repeating: 0x42, count: 16)

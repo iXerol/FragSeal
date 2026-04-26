@@ -13,7 +13,12 @@
 #include "SpanTypes.hpp"
 
 namespace fragseal::crypto::backend {
+namespace openssl_backend {
 struct State;
+}
+namespace commoncrypto_backend {
+struct State;
+}
 }
 
 extern const std::size_t kLegacyAes128CbcBlockSize SWIFT_NAME(LegacyAes128CbcCrypter.blockSize);
@@ -36,5 +41,6 @@ public:
 
 private:
     std::array<uint8_t, blockSize> key;
-    std::shared_ptr<const fragseal::crypto::backend::State> backendState;
+    std::shared_ptr<const fragseal::crypto::backend::openssl_backend::State> opensslState;
+    std::shared_ptr<const fragseal::crypto::backend::commoncrypto_backend::State> commoncryptoState;
 };

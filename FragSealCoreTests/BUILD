@@ -53,6 +53,24 @@ swift_test(
     features = ["-swift.symbol_graphs"],
 )
 
+swift_test(
+    name = "FragSealCoreTests_runtime_unavailable_host",
+    srcs = ["LinuxTestMain.swift"],
+    deps = [":FragSealCoreTests_library"],
+    data = TEST_DATA,
+    copts = [
+        "-Xcc", "-std=c++20",
+        "-strict-concurrency=complete",
+        "-cxx-interoperability-mode=default",
+        "-enable-experimental-feature", "SafeInteropWrappers",
+    ] + linux_swift_copts(),
+    discover_tests = False,
+    env = {
+        "FRAGSEAL_OPENSSL_FORCE_UNAVAILABLE": "1",
+    },
+    features = ["-swift.symbol_graphs"],
+)
+
 objc_library(
     name = "FragSealCryptoSwiftHeaderImportObjc",
     testonly = True,
@@ -77,6 +95,23 @@ macos_unit_test(
         ":FragSealCoreTests_library",
         ":FragSealCryptoSwiftHeaderImportObjc",
     ],
+    runner = ":macos_runner",
+    visibility = ["//visibility:public"],
+)
+
+macos_unit_test(
+    name = "FragSealCoreTests_runtime_unavailable_backdeploy",
+    minimum_os_version = "14.0",
+    additional_contents = {
+        ":libswiftCompatibilitySpan": "Frameworks",
+    },
+    deps = [
+        ":FragSealCoreTests_library",
+        ":FragSealCryptoSwiftHeaderImportObjc",
+    ],
+    env = {
+        "FRAGSEAL_OPENSSL_FORCE_UNAVAILABLE": "1",
+    },
     runner = ":macos_runner",
     visibility = ["//visibility:public"],
 )
