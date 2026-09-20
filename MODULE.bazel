@@ -8,22 +8,14 @@ archive_override(
     urls = ["https://github.com/xinzhengzhang/bis/archive/refs/tags/0.5.2.tar.gz"],
 )
 
-bazel_dep(name = "rules_xcodeproj", version = "3.6.0")
-bazel_dep(name = "rules_apple", version = "4.5.0")
-bazel_dep(name = "rules_swift", version = "3.5.0")
-
-# Keep this override until upstream rules_swift forwards user compile flags to
-# symbol graph extraction on Linux.
-single_version_override(
-    module_name = "rules_swift",
-    patch_strip = 1,
-    patches = ["//third_party/rules_swift:symbolgraph_user_compile_flags.patch"],
-)
-
-bazel_dep(name = "apple_support", version = "2.3.0", repo_name = "build_bazel_apple_support")
-bazel_dep(name = "rules_cc", version = "0.2.17")
-bazel_dep(name = "gazelle", version = "0.47.0")
-bazel_dep(name = "rules_swift_package_manager", version = "1.13.0")
+bazel_dep(name = "rules_xcodeproj", version = "4.1.0")
+bazel_dep(name = "rules_apple", version = "5.1.0")
+bazel_dep(name = "rules_swift", version = "4.1.0")
+bazel_dep(name = "apple_support", version = "2.8.3", repo_name = "build_bazel_apple_support")
+bazel_dep(name = "rules_cc", version = "0.2.25")
+bazel_dep(name = "rules_shell", version = "0.6.1")
+bazel_dep(name = "gazelle", version = "0.54.0")
+bazel_dep(name = "rules_swift_package_manager", version = "1.23.0")
 single_version_override(
     module_name = "rules_swift_package_manager",
     patch_strip = 1,
@@ -31,34 +23,15 @@ single_version_override(
 )
 
 # Referenced by platform/toolchain selections in this workspace.
-bazel_dep(name = "platforms", version = "1.0.0")
-bazel_dep(name = "bazel_skylib", version = "1.9.0")
+bazel_dep(name = "platforms", version = "1.1.0")
+bazel_dep(name = "bazel_skylib", version = "1.9.2")
 bazel_dep(name = "tomlplusplus", version = "3.4.0")
 
-# Required by rules_swift's extension graph (grpc/docc index-import repos).
-non_module_deps = use_extension(
-    "@rules_swift//swift:extensions.bzl",
-    "non_module_deps",
-)
-use_repo(
-    non_module_deps,
-    "build_bazel_rules_swift_index_import_5_8",
-    "build_bazel_rules_swift_index_import_6_1",
-    "build_bazel_rules_swift_local_config",
-    "com_github_apple_swift_docc_symbolkit",
-    "com_github_apple_swift_log",
-    "com_github_apple_swift_nio",
-    "com_github_apple_swift_nio_extras",
-    "com_github_apple_swift_nio_http2",
-    "com_github_apple_swift_nio_transport_services",
-    "com_github_apple_swift_protobuf",
-    "com_github_grpc_grpc_swift",
-)
-
-register_toolchains("@build_bazel_rules_swift_local_config//:all")
+# rules_swift 4 configures the local Swift toolchain through its module.
+register_toolchains("@rules_swift//swift/toolchains:all")
 
 register_execution_platforms(
-    "@local_config_platform//:host",
+    "@platforms//host",
     "//Tools/Platforms:linux_x86_64",
 )
 

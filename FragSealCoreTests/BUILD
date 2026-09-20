@@ -1,4 +1,5 @@
 load("@rules_swift//swift:swift.bzl", "swift_library", "swift_test")
+load("@rules_cc//cc:defs.bzl", "objc_library")
 load("@rules_apple//apple:macos.bzl", "macos_unit_test")
 load("@rules_apple//apple/testing/default_runner:macos_test_runner.bzl", "macos_test_runner")
 load("//Tools/Swift:linux_swift_toolchain.bzl", "linux_swift_copts")
