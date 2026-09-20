@@ -1,4 +1,4 @@
-load("//Tools/Swift:linux_swift_toolchain.bzl", "linux_cc_copts", "linux_swift_copts")
+load("//Tools/Swift:linux_swift_toolchain.bzl", "linux_cc_copts", "linux_swift_copts", "swift_cxx_interop_copts")
 load("//Tools/Swift:mixed_clang_swift_module.bzl", "mixed_clang_swift_module")
 load("@openssl_local//:availability.bzl", "OPENSSL_AVAILABLE")
 
@@ -41,11 +41,7 @@ mixed_clang_swift_module(
         "include/FragSealCrypto.hpp",
     ],
     copts = ["-std=c++20"],
-    swift_copts = [
-        "-Xcc", "-std=c++20",
-        "-cxx-interoperability-mode=default",
-        "-enable-experimental-feature", "SafeInteropWrappers",
-    ] + linux_swift_copts(),
+    swift_copts = swift_cxx_interop_copts() + linux_swift_copts(),
     clang_header_copts = linux_cc_copts(),
     header_deps = CLANG_BUILTIN_HEADERS_DEPS + SWIFT_TOOLCHAIN_HEADERS_DEPS,
     defines = select({

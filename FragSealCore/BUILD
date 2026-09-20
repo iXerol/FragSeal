@@ -1,5 +1,5 @@
 load("@rules_swift//swift:swift.bzl", "swift_library")
-load("//Tools/Swift:linux_swift_toolchain.bzl", "linux_swift_copts")
+load("//Tools/Swift:linux_swift_toolchain.bzl", "linux_swift_copts", "swift_cxx_interop_copts")
 
 package(features = ["swift.enable_v6"])
 
@@ -21,9 +21,5 @@ swift_library(
         "@swiftpkg_swift_system//:SystemPackage",
     ],
     visibility = ["//visibility:public"],
-    copts = [
-        "-Xcc", "-std=c++20",
-        "-cxx-interoperability-mode=default",
-        "-enable-experimental-feature", "SafeInteropWrappers",
-    ] + linux_swift_copts(),
+    copts = swift_cxx_interop_copts() + linux_swift_copts(),
 )

@@ -2,7 +2,7 @@ load("@rules_swift//swift:swift.bzl", "swift_library", "swift_test")
 load("@rules_cc//cc:defs.bzl", "objc_library")
 load("@rules_apple//apple:macos.bzl", "macos_unit_test")
 load("@rules_apple//apple/testing/default_runner:macos_test_runner.bzl", "macos_test_runner")
-load("//Tools/Swift:linux_swift_toolchain.bzl", "linux_swift_copts")
+load("//Tools/Swift:linux_swift_toolchain.bzl", "linux_swift_copts", "swift_cxx_interop_copts")
 load("//Tools/Swift:swift_compatibility.bzl", "swift_compatibility_dylib")
 
 package(features = ["swift.enable_v6"])
@@ -32,11 +32,7 @@ swift_library(
         "@swiftpkg_swift_system//:SystemPackage",
     ],
     visibility = ["//visibility:private"],
-    copts = [
-        "-Xcc", "-std=c++20",
-        "-cxx-interoperability-mode=default",
-        "-enable-experimental-feature", "SafeInteropWrappers",
-    ] + linux_swift_copts(),
+    copts = swift_cxx_interop_copts() + linux_swift_copts(),
     features = ["-swift.symbol_graphs"],
 )
 
@@ -45,11 +41,7 @@ swift_test(
     srcs = ["LinuxTestMain.swift"],
     deps = [":FragSealCoreTests_library"],
     data = TEST_DATA,
-    copts = [
-        "-Xcc", "-std=c++20",
-        "-cxx-interoperability-mode=default",
-        "-enable-experimental-feature", "SafeInteropWrappers",
-    ] + linux_swift_copts(),
+    copts = swift_cxx_interop_copts() + linux_swift_copts(),
     discover_tests = False,
     features = ["-swift.symbol_graphs"],
 )
@@ -59,11 +51,7 @@ swift_test(
     srcs = ["LinuxTestMain.swift"],
     deps = [":FragSealCoreTests_library"],
     data = TEST_DATA,
-    copts = [
-        "-Xcc", "-std=c++20",
-        "-cxx-interoperability-mode=default",
-        "-enable-experimental-feature", "SafeInteropWrappers",
-    ] + linux_swift_copts(),
+    copts = swift_cxx_interop_copts() + linux_swift_copts(),
     discover_tests = False,
     env = {
         "FRAGSEAL_OPENSSL_FORCE_UNAVAILABLE": "1",

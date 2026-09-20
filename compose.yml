@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Tools/Docker/swift-linux.Dockerfile
       args:
-        SWIFT_IMAGE: swift:6.2
+        SWIFT_IMAGE: swift:6.4
     working_dir: /workspace
     volumes:
       - .:/workspace
