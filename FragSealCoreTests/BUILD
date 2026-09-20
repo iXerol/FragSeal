@@ -5,6 +5,8 @@ load("@rules_apple//apple/testing/default_runner:macos_test_runner.bzl", "macos_
 load("//Tools/Swift:linux_swift_toolchain.bzl", "linux_swift_copts")
 load("//Tools/Swift:swift_compatibility.bzl", "swift_compatibility_dylib")
 
+package(features = ["swift.enable_v6"])
+
 macos_test_runner(
     name = "macos_runner",
 )
@@ -32,7 +34,6 @@ swift_library(
     visibility = ["//visibility:private"],
     copts = [
         "-Xcc", "-std=c++20",
-        "-strict-concurrency=complete",
         "-cxx-interoperability-mode=default",
         "-enable-experimental-feature", "SafeInteropWrappers",
     ] + linux_swift_copts(),
@@ -46,7 +47,6 @@ swift_test(
     data = TEST_DATA,
     copts = [
         "-Xcc", "-std=c++20",
-        "-strict-concurrency=complete",
         "-cxx-interoperability-mode=default",
         "-enable-experimental-feature", "SafeInteropWrappers",
     ] + linux_swift_copts(),
@@ -61,7 +61,6 @@ swift_test(
     data = TEST_DATA,
     copts = [
         "-Xcc", "-std=c++20",
-        "-strict-concurrency=complete",
         "-cxx-interoperability-mode=default",
         "-enable-experimental-feature", "SafeInteropWrappers",
     ] + linux_swift_copts(),

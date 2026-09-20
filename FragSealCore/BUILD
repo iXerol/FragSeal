@@ -1,6 +1,8 @@
 load("@rules_swift//swift:swift.bzl", "swift_library")
 load("//Tools/Swift:linux_swift_toolchain.bzl", "linux_swift_copts")
 
+package(features = ["swift.enable_v6"])
+
 swift_library(
     name = "FragSealCore",
     module_name = "FragSealCore",
@@ -21,7 +23,6 @@ swift_library(
     visibility = ["//visibility:public"],
     copts = [
         "-Xcc", "-std=c++20",
-        "-strict-concurrency=complete",
         "-cxx-interoperability-mode=default",
         "-enable-experimental-feature", "SafeInteropWrappers",
     ] + linux_swift_copts(),
