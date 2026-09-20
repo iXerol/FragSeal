@@ -1,6 +1,6 @@
 # FragSeal
 
-![Swift](https://img.shields.io/badge/Swift-6.2-orange)
+![Swift](https://img.shields.io/badge/Swift-6.4-orange)
 ![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux-blue)
 ![macOS](https://img.shields.io/badge/macOS-14%2B-blue)
 [![CI](https://github.com/iXerol/FragSeal/actions/workflows/ci.yml/badge.svg)](https://github.com/iXerol/FragSeal/actions/workflows/ci.yml)
