@@ -116,21 +116,16 @@ jobs:
             BAZEL_ARGS="${BAZEL_CI_ARGS} --config=macos"
 
   linux-tests:
-    name: Linux tests (${{ matrix.name }}, openssl-${{ matrix.openssl_mode }})
+    name: Linux tests (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: x86_64
+          - arch: x86_64
             runner: ubuntu-latest
-            openssl_mode: auto
-          - name: x86_64
-            runner: ubuntu-latest
-            openssl_mode: disabled
-          - name: arm64
+          - arch: arm64
             runner: ubuntu-24.04-arm
-            openssl_mode: auto
     steps:
       - uses: actions/checkout@v6
 
@@ -139,14 +134,18 @@ jobs:
 
       - name: Run tests
         run: |
-          EXTRA_BAZEL_ARGS=""
-          if [ "${{ matrix.openssl_mode }}" = "disabled" ]; then
-            EXTRA_BAZEL_ARGS="--repo_env=FRAGSEAL_FORCE_NO_OPENSSL=1"
-          fi
           docker compose run --rm \
             --entrypoint /bin/bash \
             swift-linux \
-            -lc "make test PLATFORM=linux BAZEL_ARGS='${BAZEL_CI_ARGS} ${EXTRA_BAZEL_ARGS}'"
+            -lc "make test PLATFORM=linux BAZEL_ARGS='${BAZEL_CI_ARGS}'"
+
+      - name: Run tests without OpenSSL
+        if: matrix.arch == 'x86_64'
+        run: |
+          docker compose run --rm \
+            --entrypoint /bin/bash \
+            swift-linux \
+            -lc "make test PLATFORM=linux BAZEL_ARGS='${BAZEL_CI_ARGS} --repo_env=FRAGSEAL_FORCE_NO_OPENSSL=1'"
 
   linux-builds:
     name: Linux build (${{ matrix.name }}, ${{ matrix.arch }})
