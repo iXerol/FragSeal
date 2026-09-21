@@ -5,7 +5,11 @@ archive_override(
     module_name = "bis",
     integrity = "sha256-YZAt2FXvY/gF48maQocpWVBAhyAfqplbtN6TYbVZgq4=",
     strip_prefix = "bis-0.5.2",
-    urls = ["https://github.com/xinzhengzhang/bis/archive/refs/tags/0.5.2.tar.gz"],
+    type = "tar.gz",
+    urls = [
+        "https://codeload.github.com/xinzhengzhang/bis/tar.gz/refs/tags/0.5.2",
+        "https://github.com/xinzhengzhang/bis/archive/refs/tags/0.5.2.tar.gz",
+    ],
 )
 
 bazel_dep(name = "rules_xcodeproj", version = "4.1.0")

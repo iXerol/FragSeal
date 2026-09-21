@@ -28,9 +28,13 @@ RUN set -eux; \
       arm64|aarch64) bazelisk_arch="arm64" ;; \
       *) echo "Unsupported architecture: ${arch}" >&2; exit 1 ;; \
     esac; \
-    curl -fsSL -o /usr/local/bin/bazel "https://github.com/bazelbuild/bazelisk/releases/download/v1.22.1/bazelisk-linux-${bazelisk_arch}"; \
-    chmod +x /usr/local/bin/bazel; \
-    bazel --version
+    curl -fsSL \
+      --retry 5 \
+      --retry-delay 2 \
+      --retry-all-errors \
+      -o /usr/local/bin/bazel \
+      "https://github.com/bazelbuild/bazelisk/releases/download/v1.22.1/bazelisk-linux-${bazelisk_arch}"; \
+    chmod +x /usr/local/bin/bazel
 
 ENV CC=clang
 ENV CXX=clang++
