@@ -1,3 +1,5 @@
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
 sh_test(
     name = "FragSealCliFunctionalTest_linux",
     srcs = ["cli_artifact_functional_test.sh"],

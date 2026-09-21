@@ -198,6 +198,8 @@ SWIFT_TOOLCHAIN_SWIFT_TO_CXX_PARENT = "{swift_to_cxx_parent}"
     ctx.file(
         "BUILD.bazel",
         """
+load(\"@rules_cc//cc:defs.bzl\", \"cc_library\")
+
 package(default_visibility = [\"//visibility:public\"])
 
 cc_library(

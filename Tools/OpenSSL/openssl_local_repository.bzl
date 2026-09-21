@@ -100,7 +100,9 @@ def _openssl_local_repository_impl(ctx):
 
     ctx.file(
         "BUILD.bazel",
-        """package(default_visibility = ["//visibility:public"])
+        """load("@rules_cc//cc:defs.bzl", "cc_import", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
 
 {crypto_rule}
 

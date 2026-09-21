@@ -24,6 +24,8 @@ find /usr/lib/clang -type f -name lifetimebound.h 2>/dev/null | head -n 1
     ctx.file(
         "BUILD.bazel",
         """
+load(\"@rules_cc//cc:defs.bzl\", \"cc_library\")
+
 package(default_visibility = [\"//visibility:public\"])
 
 cc_library(

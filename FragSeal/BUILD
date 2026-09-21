@@ -4,8 +4,10 @@ load(
     "swift_binary",
     "swift_library",
 )
-load("//Tools/Swift:linux_swift_toolchain.bzl", "linux_swift_copts")
+load("//Tools/Swift:linux_swift_toolchain.bzl", "linux_swift_copts", "swift_cxx_interop_copts")
 load("//Tools/Swift:swift_compatibility.bzl", "swift_compatibility_dylib")
+
+package(features = ["swift.enable_v6"])
 
 config_setting(
     name = "is_macos",
@@ -22,12 +24,8 @@ swift_library(
         "@swiftpkg_swift_argument_parser//:ArgumentParser",
     ],
     visibility = ["//visibility:private"],
-    copts = [
-        "-Xcc", "-std=c++20",
+    copts = swift_cxx_interop_copts() + [
         "-parse-as-library",
-        "-strict-concurrency=complete",
-        "-cxx-interoperability-mode=default",
-        "-enable-experimental-feature", "SafeInteropWrappers",
     ] + linux_swift_copts(),
 )
 

@@ -1,5 +1,19 @@
 load("@swift_toolchain_include//:paths.bzl", "SWIFT_TOOLCHAIN_INCLUDE_ROOT", "SWIFT_TOOLCHAIN_SWIFT_TO_CXX_PARENT")
 
+def swift_cxx_interop_copts():
+    """Shared Swift compiler options for the project's C++20 interop targets."""
+    return [
+        "-Xcc", "-std=c++20",
+        "-cxx-interoperability-mode=default",
+    ] + select({
+        # Swift 6.4 on Apple platforms enables these wrappers by default, but
+        # the Linux Swift 6.4 toolchain still needs the opt-in for std::span.
+        "@platforms//os:linux": [
+            "-enable-experimental-feature", "SafeInteropWrappers",
+        ],
+        "//conditions:default": [],
+    })
+
 def _linux_libstdcpp_triple_swift_copts():
     return select({
         "@platforms//cpu:x86_64": [
