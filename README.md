@@ -238,7 +238,7 @@ inside the container before running Bazel so the `.git` indirection stays valid.
 
 ## VS Code setup (bis)
 
-This project uses [bis](https://github.com/buildbuddy-io/bis) as a dev
+This project uses [bis](https://github.com/xinzhengzhang/bis) as a dev
 dependency for VS Code / SourceKit-LSP integration.
 
 ### Compile commands
